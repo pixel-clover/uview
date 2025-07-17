@@ -4,6 +4,9 @@
 MVN := $(if $(wildcard ./mvnw),./mvnw,mvn)
 SHELL := /bin/bash
 
+# Set log level
+LOG_LEVEL := DEBUG
+
 # Default target executed when 'make' is run without arguments
 .DEFAULT_GOAL := help
 
@@ -21,9 +24,9 @@ package: ## Compile and package the application into a JAR file
 	@echo "Packaging application..."
 	@$(MVN) -B package
 
-run: ## Run the application (development mode)
+run: package ## Build and run the packaged application
 	@echo "Running application..."
-	@$(MVN) -B -q exec:java
+	@java -Dlog4j.level=$(LOG_LEVEL) -jar target/uview.jar
 
 package-release: ## Compile and package for a release
 	@echo "Packaging project for release..."

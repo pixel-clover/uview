@@ -1,12 +1,28 @@
 package com.uview.gui;
 
 import com.uview.core.PackageManager;
-import java.awt.*;
+import com.uview.model.UnityAsset;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -16,11 +32,12 @@ import javax.swing.tree.TreePath;
 public class MainWindow extends JFrame {
 
   private final PackageManager packageManager = new PackageManager();
+  private File currentFile;
+
   private final JTree tree;
   private final DefaultTreeModel treeModel;
-  private final JLabel statusLabel;
-  private File currentFile;
   private JMenuItem saveMenuItem;
+  private final JLabel statusLabel;
 
   /** Constructs the main window and initializes its components. */
   public MainWindow() {
@@ -35,6 +52,7 @@ public class MainWindow extends JFrame {
     DefaultMutableTreeNode root = new DefaultMutableTreeNode("No package loaded.");
     treeModel = new DefaultTreeModel(root);
     tree = new JTree(treeModel);
+    tree.setCellRenderer(new FileTypeTreeCellRenderer());
     tree.addMouseListener(
         new MouseAdapter() {
           @Override
@@ -95,9 +113,9 @@ public class MainWindow extends JFrame {
 
     popup.add(new JSeparator());
 
-    JMenuItem extractMenuItem = new JMenuItem("Extract...");
-    extractMenuItem.setEnabled(isNodeSelected);
-    extractMenuItem.addActionListener(e -> extractSelectedAssets());
+    JMenuItem extractMenuItem = new JMenuItem("Extract All...");
+    extractMenuItem.setEnabled(currentFile != null);
+    extractMenuItem.addActionListener(e -> extractAllAssets());
     popup.add(extractMenuItem);
 
     return popup;
@@ -166,18 +184,26 @@ public class MainWindow extends JFrame {
       return;
     }
 
-    Object node = ((DefaultMutableTreeNode) selectionPath.getLastPathComponent()).getUserObject();
-    if (node instanceof String) {
-      String assetPath = (String) node;
-      packageManager.removeAsset(assetPath);
+    DefaultMutableTreeNode selectedNode =
+        (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
+    Object userObject = selectedNode.getUserObject();
+
+    String pathToRemove = null;
+    if (userObject instanceof UnityAsset) {
+      pathToRemove = ((UnityAsset) userObject).getAssetPath();
+    } else if (userObject instanceof String) {
+      pathToRemove = (String) userObject;
+    }
+
+    if (pathToRemove != null) {
+      packageManager.removeAsset(pathToRemove);
       refreshTree();
       updateState();
     }
   }
 
-  private void extractSelectedAssets() {
-    TreePath[] selectionPaths = tree.getSelectionPaths();
-    if (selectionPaths == null || selectionPaths.length == 0) {
+  private void extractAllAssets() {
+    if (packageManager.getAssets().isEmpty()) {
       return;
     }
 
@@ -185,8 +211,6 @@ public class MainWindow extends JFrame {
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();
-      // For simplicity, we'll extract all assets if any are selected.
-      // A more complex implementation would map nodes back to assets.
       extractAllAssetsInBackground(outputDir);
     }
   }

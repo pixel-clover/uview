@@ -1,6 +1,9 @@
 package com.uview.core;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.uview.model.UnityAsset;
 import java.io.IOException;
@@ -14,8 +17,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PackageManagerTest {
 
-  @TempDir Path tempDir;
   private PackageManager packageManager;
+  @TempDir Path tempDir;
   private Path testPackageFile;
   private Path sourceFile;
 

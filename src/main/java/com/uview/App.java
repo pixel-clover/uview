@@ -1,7 +1,8 @@
 package com.uview;
 
+import com.formdev.flatlaf.FlatLightLaf;
 import com.uview.gui.MainWindow;
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,13 +18,11 @@ public final class App {
    * @param args Command line arguments (not used).
    */
   public static void main(String[] args) {
+    // Set up the FlatLaf Look and Feel
+    FlatLightLaf.setup();
+
     SwingUtilities.invokeLater(
         () -> {
-          try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-          } catch (Exception e) {
-            LOGGER.warn("Could not set system look and feel.", e);
-          }
           MainWindow frame = new MainWindow();
           frame.setVisible(true);
         });

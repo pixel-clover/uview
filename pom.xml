@@ -18,6 +18,7 @@
     <java.version>17</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
 
+    <flatlaf.version>3.4.1</flatlaf.version>
     <commons.compress.version>1.26.2</commons.compress.version>
     <junit.jupiter.version>5.10.2</junit.jupiter.version>
     <log4j.version>2.23.1</log4j.version>
@@ -56,6 +57,16 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.formdev</groupId>
+      <artifactId>flatlaf</artifactId>
+      <version>${flatlaf.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.formdev</groupId>
+      <artifactId>flatlaf-extras</artifactId>
+      <version>${flatlaf.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
       <version>${commons.compress.version}</version>
@@ -77,6 +88,8 @@
   </dependencies>
 
   <build>
+    <finalName>uview</finalName>
+
     <pluginManagement>
       <plugins>
         <plugin>
@@ -116,7 +129,6 @@
         </plugin>
       </plugins>
     </pluginManagement>
-
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

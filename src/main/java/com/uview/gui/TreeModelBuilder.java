@@ -32,23 +32,16 @@ public final class TreeModelBuilder {
         .sorted((a1, a2) -> a1.getAssetPath().compareTo(a2.getAssetPath()))
         .forEach(
             asset -> {
-              String path = asset.getAssetPath();
-              if (path.endsWith("/")) {
-                path = path.substring(0, path.length() - 1);
-              }
-
-              File pathFile = new File(path);
-              String parentPath = pathFile.getParent();
-              if (parentPath == null) {
-                parentPath = "";
-              }
-
-              DefaultMutableTreeNode parentNode = findOrCreateParent(nodeMap, parentPath);
-              DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(asset.getAssetPath());
-              parentNode.add(newNode);
-
-              if (asset.isDirectory()) {
-                nodeMap.put(path, newNode);
+              // It's a file, so its user object will be the asset itself
+              if (!asset.isDirectory()) {
+                File pathFile = new File(asset.getAssetPath());
+                String parentPath = pathFile.getParent();
+                if (parentPath == null) {
+                  parentPath = "";
+                }
+                DefaultMutableTreeNode parentNode = findOrCreateParent(nodeMap, parentPath);
+                DefaultMutableTreeNode assetNode = new DefaultMutableTreeNode(asset);
+                parentNode.add(assetNode);
               }
             });
 
@@ -61,6 +54,7 @@ public final class TreeModelBuilder {
       return nodeMap.get(path);
     }
     if (path.isEmpty()) {
+      // Should be caught by the initial check, but as a safeguard.
       return nodeMap.get("");
     }
 
@@ -71,7 +65,7 @@ public final class TreeModelBuilder {
     }
 
     DefaultMutableTreeNode parentNode = findOrCreateParent(nodeMap, parentPath);
-    // Display path should end with a slash for directories
+    // User object for directories is the path string
     DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(path + "/");
     parentNode.add(newNode);
     nodeMap.put(path, newNode);
