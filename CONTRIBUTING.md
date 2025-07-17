@@ -5,7 +5,7 @@ All contributions are welcome.
 
 ## How to Contribute
 
-Please check the [issue tracker](https://github.com/habedi/template-java-project/issues) to see if there is a relevant
+Please check the [issue tracker](https://github.com/habedi/uview/issues) to see if there is a relevant
 issue you would like to work on.
 
 ### Reporting Bugs
@@ -44,7 +44,7 @@ This project uses `make` to manage common tasks.
 
 > [!IMPORTANT]
 > Unless you explicitly state otherwise, any contribution you intentionally submit for inclusion in the work, as defined
-> in the Apache-2.0 license, shall be dual-licensed, without any additional terms or conditions.
+> in MIT License, shall be under the terms and conditions of the MIT License.
 
 ## Code of Conduct
 

@@ -4,24 +4,23 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.example.projectname</groupId>
-  <artifactId>project-name</artifactId>
+  <groupId>com.uview</groupId>
+  <artifactId>uview</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>Project Name</name>
-  <description>A template for generic Java projects.</description>
-  <url>http://www.example.com/project-name</url>
+  <name>UView</name>
+  <description>A desktop application for viewing, extracting, and modifying Unity package files.</description>
+  <url>https://github.com/habedi/uview</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <java.version>21</java.version>
+    <java.version>17</java.version>
     <maven.compiler.release>${java.version}</maven.compiler.release>
 
+    <commons.compress.version>1.26.2</commons.compress.version>
     <junit.jupiter.version>5.10.2</junit.jupiter.version>
     <log4j.version>2.23.1</log4j.version>
-    <jmh.version>1.37</jmh.version>
-    <picocli.version>4.7.6</picocli.version>
 
     <maven.clean.plugin.version>3.3.2</maven.clean.plugin.version>
     <maven.resources.plugin.version>3.3.1</maven.resources.plugin.version>
@@ -29,8 +28,6 @@
     <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
     <maven.jar.plugin.version>3.4.1</maven.jar.plugin.version>
     <maven.shade.plugin.version>3.5.3</maven.shade.plugin.version>
-    <maven.source.plugin.version>3.3.1</maven.source.plugin.version>
-    <maven.javadoc.plugin.version>3.6.3</maven.javadoc.plugin.version>
     <exec.maven.plugin.version>3.3.0</exec.maven.plugin.version>
     <jacoco.maven.plugin.version>0.8.12</jacoco.maven.plugin.version>
     <spotless.maven.plugin.version>2.43.0</spotless.maven.plugin.version>
@@ -59,42 +56,23 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>${commons.compress.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>runtime</scope>
     </dependency>
-
-    <dependency>
-      <groupId>info.picocli</groupId>
-      <artifactId>picocli</artifactId>
-      <version>${picocli.version}</version>
-    </dependency>
-
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-core</artifactId>
-      <version>${jmh.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-generator-annprocess</artifactId>
-      <version>${jmh.version}</version>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
 
@@ -132,16 +110,6 @@
           <version>${maven.shade.plugin.version}</version>
         </plugin>
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>${maven.source.plugin.version}</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>${maven.javadoc.plugin.version}</version>
-        </plugin>
-        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
           <version>${exec.maven.plugin.version}</version>
@@ -155,18 +123,6 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <release>${java.version}</release>
-          <annotationProcessorPaths>
-            <path>
-              <groupId>info.picocli</groupId>
-              <artifactId>picocli-codegen</artifactId>
-              <version>${picocli.version}</version>
-            </path>
-            <path>
-              <groupId>org.openjdk.jmh</groupId>
-              <artifactId>jmh-generator-annprocess</artifactId>
-              <version>${jmh.version}</version>
-            </path>
-          </annotationProcessorPaths>
         </configuration>
       </plugin>
       <plugin>
@@ -182,16 +138,21 @@
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.example.projectname.App</mainClass>
+                  <mainClass>com.uview.App</mainClass>
                 </transformer>
               </transformers>
               <filters>
                 <filter>
                   <artifact>*:*</artifact>
                   <excludes>
+                    <exclude>module-info.class</exclude>
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/LICENSE</exclude>
+                    <exclude>META-INF/LICENSE.txt</exclude>
+                    <exclude>META-INF/NOTICE</exclude>
+                    <exclude>META-INF/NOTICE.txt</exclude>
                   </excludes>
                 </filter>
               </filters>
@@ -200,34 +161,10 @@
         </executions>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar-no-fork</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <mainClass>com.example.projectname.App</mainClass>
+          <mainClass>com.uview.App</mainClass>
         </configuration>
       </plugin>
       <plugin>
@@ -257,7 +194,7 @@
           <java>
             <googleJavaFormat>
               <version>1.17.0</version>
-              <style>AOSP</style>
+              <style>GOOGLE</style>
             </googleJavaFormat>
             <removeUnusedImports/>
           </java>

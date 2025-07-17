@@ -8,7 +8,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 # Phony targets don't represent files
-.PHONY: help build package test format format-check lint clean setup-hooks test-hooks
+.PHONY: help package run package-release test format format-check lint clean setup-hooks test-hooks
 
 help: ## Show this help message
 	@echo "Usage: make <target>"
@@ -17,17 +17,21 @@ help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | \
 	awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: ## Run the full Maven build lifecycle (compile, check, test, and package)
-	@echo "Building project and running all checks..."
-	@$(MVN) -B verify
-
 package: ## Compile and package the application into a JAR file
 	@echo "Packaging application..."
 	@$(MVN) -B package
 
-test: ## Run all the tests
+run: ## Run the application (development mode)
+	@echo "Running application..."
+	@$(MVN) -B -q exec:java
+
+package-release: ## Compile and package for a release
+	@echo "Packaging project for release..."
+	@$(MVN) -B package -P release
+
+test: ## Run the tests and all other build checks
 	@echo "Running tests..."
-	@$(MVN) -B test
+	@$(MVN) -B verify
 
 format: ## Format Java source files
 	@echo "Formatting source code..."
@@ -48,8 +52,8 @@ clean: ## Remove all build artifacts
 setup-hooks: ## Set up pre-commit hooks
 	@echo "Setting up pre-commit hooks..."
 	@if ! command -v pre-commit &> /dev/null; then \
-		echo "pre-commit not found. Please install it using 'pip install pre-commit'"; \
-		exit 1; \
+	   echo "pre-commit not found. Please install it using 'pip install pre-commit'"; \
+	   exit 1; \
 	fi
 	@pre-commit install --install-hooks
 
