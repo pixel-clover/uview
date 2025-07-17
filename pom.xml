@@ -67,6 +67,12 @@
       <version>${flatlaf.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.github.weisj</groupId>
+      <artifactId>jsvg</artifactId>
+      <version>1.5.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
       <version>${commons.compress.version}</version>
@@ -247,4 +253,12 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <finalName>uview-${project.version}</finalName>
+      </build>
+    </profile>
+  </profiles>
 </project>

@@ -2,7 +2,6 @@ package com.uview.gui;
 
 import com.uview.gui.tree.TreeEntry;
 import com.uview.model.UnityAsset;
-import java.io.File;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,25 +26,33 @@ public final class TreeModelBuilder {
         .forEach(
             asset -> {
               String path = asset.assetPath();
-              String pathForParentLookup =
+              String normalizedPath =
                   path.endsWith("/") ? path.substring(0, path.length() - 1) : path;
+              String[] components = normalizedPath.split("/");
 
-              File pathFile = new File(pathForParentLookup);
-              String parentPath = pathFile.getParent();
-              if (parentPath == null) {
-                parentPath = "";
+              DefaultMutableTreeNode parentNode = root;
+              StringBuilder currentPath = new StringBuilder();
+
+              int limit = asset.isDirectory() ? components.length : components.length - 1;
+
+              for (int i = 0; i < limit; i++) {
+                String part = components[i];
+                if (i > 0) {
+                  currentPath.append('/');
+                }
+                currentPath.append(part);
+                String pathKey = currentPath.toString();
+                DefaultMutableTreeNode currentNode = nodeMap.get(pathKey);
+                if (currentNode == null) {
+                  currentNode =
+                      new DefaultMutableTreeNode(new TreeEntry.DirectoryEntry(pathKey + "/"));
+                  parentNode.add(currentNode);
+                  nodeMap.put(pathKey, currentNode);
+                }
+                parentNode = currentNode;
               }
 
-              DefaultMutableTreeNode parentNode = findOrCreateParent(nodeMap, parentPath);
-
-              if (asset.isDirectory()) {
-                if (!nodeMap.containsKey(pathForParentLookup)) {
-                  DefaultMutableTreeNode dirNode =
-                      new DefaultMutableTreeNode(new TreeEntry.DirectoryEntry(path));
-                  parentNode.add(dirNode);
-                  nodeMap.put(pathForParentLookup, dirNode);
-                }
-              } else {
+              if (!asset.isDirectory()) {
                 DefaultMutableTreeNode assetNode =
                     new DefaultMutableTreeNode(new TreeEntry.AssetEntry(asset));
                 assetNode.setAllowsChildren(false);
@@ -54,28 +61,5 @@ public final class TreeModelBuilder {
             });
 
     return root;
-  }
-
-  private static DefaultMutableTreeNode findOrCreateParent(
-      Map<String, DefaultMutableTreeNode> nodeMap, String path) {
-    if (nodeMap.containsKey(path)) {
-      return nodeMap.get(path);
-    }
-    if (path.isEmpty()) {
-      return nodeMap.get("");
-    }
-
-    File pathFile = new File(path);
-    String parentPath = pathFile.getParent();
-    if (parentPath == null) {
-      parentPath = "";
-    }
-
-    DefaultMutableTreeNode parentNode = findOrCreateParent(nodeMap, parentPath);
-    DefaultMutableTreeNode newNode =
-        new DefaultMutableTreeNode(new TreeEntry.DirectoryEntry(path + "/"));
-    parentNode.add(newNode);
-    nodeMap.put(path, newNode);
-    return newNode;
   }
 }

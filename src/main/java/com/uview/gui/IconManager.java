@@ -7,7 +7,6 @@ import javax.swing.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/** Manages loading and caching of file-specific SVG icons from the FlatLaf library. */
 public final class IconManager {
 
   private static final Logger LOGGER = LogManager.getLogger(IconManager.class);
@@ -16,41 +15,62 @@ public final class IconManager {
   private static final Icon FOLDER_ICON;
 
   static {
-    // Pre-load common icons into the cache.
-    FOLDER_ICON = loadIcon("nodes/folder.svg");
-    DEFAULT_FILE_ICON = loadIcon("fileTypes/any_type.svg");
+    FOLDER_ICON = loadIcon("folder.svg");
+    DEFAULT_FILE_ICON = loadIcon("file_default.svg");
 
     ICON_CACHE.put("folder", FOLDER_ICON);
     ICON_CACHE.put("file", DEFAULT_FILE_ICON);
-    ICON_CACHE.put("cs", loadIcon("fileTypes/csharp.svg"));
-    ICON_CACHE.put("png", loadIcon("fileTypes/image.svg"));
-    ICON_CACHE.put("jpg", loadIcon("fileTypes/image.svg"));
-    ICON_CACHE.put("jpeg", loadIcon("fileTypes/image.svg"));
-    ICON_CACHE.put("fbx", loadIcon("fileTypes/archive.svg"));
-    ICON_CACHE.put("prefab", loadIcon("nodes/ppLib.svg"));
-    ICON_CACHE.put("anim", loadIcon("actions/execute.svg"));
-    ICON_CACHE.put("mat", loadIcon("nodes/color.svg"));
-    ICON_CACHE.put("unity", loadIcon("fileTypes/diagram.svg"));
+    ICON_CACHE.put("cs", loadIcon("file_csharp.svg"));
+    ICON_CACHE.put("png", loadIcon("file_image.svg"));
+    ICON_CACHE.put("jpg", loadIcon("file_image.svg"));
+    ICON_CACHE.put("jpeg", loadIcon("file_image.svg"));
+    ICON_CACHE.put("gif", loadIcon("file_image.svg"));
+    ICON_CACHE.put("tga", loadIcon("file_image.svg"));
+    ICON_CACHE.put("psd", loadIcon("file_image.svg"));
+    ICON_CACHE.put("shader", loadIcon("file_code.svg"));
+    ICON_CACHE.put("fbx", loadIcon("file_archive.svg"));
+    ICON_CACHE.put("prefab", loadIcon("file_assembly.svg"));
+    ICON_CACHE.put("anim", loadIcon("file_video.svg"));
+    ICON_CACHE.put("mp4", loadIcon("file_video.svg"));
+    ICON_CACHE.put("mov", loadIcon("file_video.svg"));
+    ICON_CACHE.put("wav", loadIcon("file_audio.svg"));
+    ICON_CACHE.put("mp3", loadIcon("file_audio.svg"));
+    ICON_CACHE.put("txt", loadIcon("file_text.svg"));
+    ICON_CACHE.put("mat", loadIcon("file_json.svg"));
+    ICON_CACHE.put("unity", loadIcon("file_diagram.svg"));
+    ICON_CACHE.put("json", loadIcon("file_json.svg"));
+    ICON_CACHE.put("xml", loadIcon("file_xml.svg"));
+    ICON_CACHE.put("controller", loadIcon("file_controller.svg"));
   }
 
   private IconManager() {}
 
-  private static Icon loadIcon(String relativePath) {
-    String fullPath = "/com/formdev/flatlaf/extras/icons/" + relativePath;
+  private static Icon loadIcon(String iconName) {
+    String resourcePath = "/icons/" + iconName;
+    java.net.URL resourceUrl = IconManager.class.getResource(resourcePath);
+
+    if (resourceUrl == null) {
+      LOGGER.error("Icon resource not found at path: {}", resourcePath);
+      return null;
+    }
+
     try {
-      return new FlatSVGIcon(fullPath, IconManager.class.getClassLoader());
+      // Use the URL-based constructor for robustness
+      FlatSVGIcon icon = new FlatSVGIcon(resourceUrl);
+
+      if (icon.getIconWidth() == 0) {
+        LOGGER.error(
+            "Failed to parse SVG data for icon: {}. The file may be empty or corrupt.",
+            resourcePath);
+        return null;
+      }
+      return icon.derive(16, 16);
     } catch (Exception e) {
-      LOGGER.warn("Could not load icon at path: {}", fullPath, e);
+      LOGGER.error("Exception while loading icon from URL: {}", resourceUrl, e);
       return null;
     }
   }
 
-  /**
-   * Gets a specific icon based on a file's extension.
-   *
-   * @param filename The name of the file.
-   * @return The corresponding Icon, or a default file icon.
-   */
   public static Icon getIconForFile(String filename) {
     if (filename == null || filename.isEmpty()) {
       return DEFAULT_FILE_ICON;
@@ -65,11 +85,6 @@ public final class IconManager {
     return ICON_CACHE.getOrDefault(extension, DEFAULT_FILE_ICON);
   }
 
-  /**
-   * Gets the generic folder icon.
-   *
-   * @return The folder Icon.
-   */
   public static Icon getFolderIcon() {
     return FOLDER_ICON;
   }
