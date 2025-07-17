@@ -3,7 +3,7 @@ package com.uview.gui;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.Icon;
+import javax.swing.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,14 +36,11 @@ public final class IconManager {
   private IconManager() {}
 
   private static Icon loadIcon(String relativePath) {
-    // The path must be absolute on the classpath, starting with '/'.
-    // The icons are located inside the flatlaf-extras.jar.
     String fullPath = "/com/formdev/flatlaf/extras/icons/" + relativePath;
     try {
-      return new FlatSVGIcon(fullPath, IconManager.class.getClassLoader()).derive(16, 16);
+      return new FlatSVGIcon(fullPath, IconManager.class.getClassLoader());
     } catch (Exception e) {
       LOGGER.warn("Could not load icon at path: {}", fullPath, e);
-      // Return null if an icon fails to load.
       return null;
     }
   }

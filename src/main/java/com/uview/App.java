@@ -2,7 +2,7 @@ package com.uview;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import com.uview.gui.MainWindow;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

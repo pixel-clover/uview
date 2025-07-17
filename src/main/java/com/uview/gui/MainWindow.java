@@ -1,28 +1,13 @@
 package com.uview.gui;
 
 import com.uview.core.PackageManager;
-import com.uview.model.UnityAsset;
-import java.awt.BorderLayout;
-import java.awt.Cursor;
-import java.awt.Desktop;
+import com.uview.io.PackageIO;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
-import javax.swing.BorderFactory;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTree;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
+import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -31,13 +16,13 @@ import javax.swing.tree.TreePath;
 /** The main application window for UView. */
 public class MainWindow extends JFrame {
 
-  private final PackageManager packageManager = new PackageManager();
-  private File currentFile;
-
+  private final PackageIO packageIO = new PackageIO();
+  private final PackageManager packageManager = new PackageManager(packageIO);
   private final JTree tree;
   private final DefaultTreeModel treeModel;
-  private JMenuItem saveMenuItem;
   private final JLabel statusLabel;
+  private File currentFile;
+  private JMenuItem saveMenuItem;
 
   /** Constructs the main window and initializes its components. */
   public MainWindow() {
@@ -188,15 +173,8 @@ public class MainWindow extends JFrame {
         (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
     Object userObject = selectedNode.getUserObject();
 
-    String pathToRemove = null;
-    if (userObject instanceof UnityAsset) {
-      pathToRemove = ((UnityAsset) userObject).getAssetPath();
-    } else if (userObject instanceof String) {
-      pathToRemove = (String) userObject;
-    }
-
-    if (pathToRemove != null) {
-      packageManager.removeAsset(pathToRemove);
+    if (userObject instanceof com.uview.gui.tree.TreeEntry entry) {
+      packageManager.removeAsset(entry.getFullPath());
       refreshTree();
       updateState();
     }
