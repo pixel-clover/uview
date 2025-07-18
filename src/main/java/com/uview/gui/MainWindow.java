@@ -10,6 +10,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -57,13 +59,14 @@ public class MainWindow extends JFrame {
         new MouseAdapter() {
           @Override
           public void mousePressed(MouseEvent e) {
-            // Handle right-click for popup menu
             if (SwingUtilities.isRightMouseButton(e)) {
               int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-              tree.setSelectionRow(row);
-              createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
+              // set selection on right-click to make context menu intuitive
+              if (row != -1) {
+                tree.setSelectionRow(row);
+                createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
+              }
             }
-            // Handle double-click to view asset
             if (e.getClickCount() == 2) {
               handleDoubleClick();
             }
@@ -107,6 +110,12 @@ public class MainWindow extends JFrame {
     TreePath selectionPath = tree.getSelectionPath();
     boolean isNodeSelected = selectionPath != null;
 
+    JMenuItem viewMenuItem = new JMenuItem("View");
+    viewMenuItem.addActionListener(e -> handleDoubleClick());
+    popup.add(viewMenuItem);
+
+    popup.add(new JSeparator());
+
     JMenuItem addMenuItem = new JMenuItem("Add File...");
     addMenuItem.addActionListener(e -> addFile());
     popup.add(addMenuItem);
@@ -118,10 +127,24 @@ public class MainWindow extends JFrame {
 
     popup.add(new JSeparator());
 
-    JMenuItem extractMenuItem = new JMenuItem("Extract All...");
-    extractMenuItem.setEnabled(currentFile != null);
-    extractMenuItem.addActionListener(e -> extractAllAssets());
-    popup.add(extractMenuItem);
+    JMenuItem extractSelectedMenuItem = new JMenuItem("Extract Selected...");
+    extractSelectedMenuItem.setEnabled(isNodeSelected);
+    extractSelectedMenuItem.addActionListener(e -> extractSelected());
+    popup.add(extractSelectedMenuItem);
+
+    JMenuItem extractAllMenuItem = new JMenuItem("Extract All...");
+    extractAllMenuItem.setEnabled(currentFile != null);
+    extractAllMenuItem.addActionListener(e -> extractAllAssets());
+    popup.add(extractAllMenuItem);
+
+    // Only enable the "View" item if the selected node is a file asset
+    if (isNodeSelected) {
+      DefaultMutableTreeNode selectedNode =
+          (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
+      viewMenuItem.setEnabled(selectedNode.getUserObject() instanceof TreeEntry.AssetEntry);
+    } else {
+      viewMenuItem.setEnabled(false);
+    }
 
     return popup;
   }
@@ -200,16 +223,38 @@ public class MainWindow extends JFrame {
     }
   }
 
-  private void extractAllAssets() {
-    if (packageManager.getAssets().isEmpty()) {
+  private void extractSelected() {
+    TreePath selectionPath = tree.getSelectionPath();
+    if (selectionPath == null) {
+      return;
+    }
+
+    DefaultMutableTreeNode selectedNode =
+        (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
+    Object userObject = selectedNode.getUserObject();
+
+    if (!(userObject instanceof TreeEntry entry)) {
       return;
     }
 
     JFileChooser chooser = new JFileChooser();
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+    if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+      Path outputDir = chooser.getSelectedFile().toPath();
+      extractInBackground(entry, outputDir);
+    }
+  }
+
+  private void extractAllAssets() {
+    if (packageManager.getAssets().isEmpty()) {
+      return;
+    }
+    JFileChooser chooser = new JFileChooser();
+    chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();
-      extractAllAssetsInBackground(outputDir);
+      // For "Extract All", we pass an empty TreeEntry to signify the root.
+      extractInBackground(new TreeEntry.DirectoryEntry(""), outputDir);
     }
   }
 
@@ -224,7 +269,7 @@ public class MainWindow extends JFrame {
     Object userObject = selectedNode.getUserObject();
 
     if (userObject instanceof TreeEntry.AssetEntry entry) {
-      AssetViewerDialog viewer = new AssetViewerDialog(this, entry.asset());
+      AssetViewerFrame viewer = new AssetViewerFrame(this, entry.asset());
       viewer.setVisible(true);
     }
   }
@@ -267,13 +312,22 @@ public class MainWindow extends JFrame {
     worker.execute();
   }
 
-  private void extractAllAssetsInBackground(Path outputDir) {
+  private void extractInBackground(TreeEntry entry, Path outputDir) {
     setWorking(true, "Extracting assets...");
     SwingWorker<Void, Void> worker =
         new SwingWorker<>() {
           @Override
           protected Void doInBackground() throws Exception {
-            packageManager.extractAssets(packageManager.getAssets(), outputDir);
+            String pathPrefix = entry.getFullPath();
+            Collection<com.uview.model.UnityAsset> assetsToExtract;
+            if (entry instanceof TreeEntry.AssetEntry assetEntry) {
+              // Extracting a single file
+              assetsToExtract = List.of(assetEntry.asset());
+            } else {
+              // Extracting a directory
+              assetsToExtract = packageManager.getAssetsUnderPath(pathPrefix);
+            }
+            packageManager.extractAssets(assetsToExtract, outputDir, pathPrefix);
             return null;
           }
 

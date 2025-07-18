@@ -3,15 +3,16 @@ package com.uview.gui;
 import com.uview.model.UnityAsset;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -20,60 +21,88 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 
-public class AssetViewerDialog extends JDialog {
+public class AssetViewerFrame extends JFrame {
 
   private static final Set<String> TEXT_EXTENSIONS =
-      Set.of("cs", "txt", "json", "xml", "shader", "mat", "unity", "asset");
+      Set.of(
+          "cs", "java", "js", "txt", "json", "xml", "shader", "mat", "unity", "asset", "prefab",
+          "html", "css", "sql", "sh");
   private static final Set<String> IMAGE_EXTENSIONS =
       Set.of("png", "jpg", "jpeg", "gif", "tga", "bmp");
   private static final Set<String> MEDIA_EXTENSIONS = Set.of("mp4", "mov", "wav", "mp3", "ogg");
   private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("#,##0.0 KB");
 
-  public AssetViewerDialog(JFrame owner, UnityAsset asset) {
-    super(owner, "Asset Viewer - " + asset.assetPath(), true);
-    setSize(800, 600);
+  public AssetViewerFrame(JFrame owner, UnityAsset asset) {
+    setTitle("Asset Viewer - " + asset.assetPath());
+    setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    setSize(900, 700);
     setLocationRelativeTo(owner);
     setLayout(new BorderLayout());
 
     JPanel metadataPanel = createMetadataPanel(asset);
     JPanel contentPanel = createContentPanel(asset);
 
+    if (contentPanel == null) {
+      dispose(); // Frame was closed by media handler
+      return;
+    }
+
     JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, metadataPanel, contentPanel);
-    splitPane.setDividerLocation(250);
+    splitPane.setDividerLocation(300);
 
     add(splitPane, BorderLayout.CENTER);
   }
 
   private JPanel createMetadataPanel(UnityAsset asset) {
-    JPanel panel = new JPanel();
-    panel.setLayout(new BorderLayout());
+    JPanel panel = new JPanel(new GridBagLayout());
     panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-    JTextArea metadataArea = new JTextArea();
-    metadataArea.setEditable(false);
-    metadataArea.setFont(new JTextArea().getFont().deriveFont(14f));
-
-    StringBuilder sb = new StringBuilder();
-    sb.append("Path:\n").append(asset.assetPath()).append("\n\n");
-    sb.append("GUID:\n").append(asset.guid()).append("\n\n");
-
+    String size = "N/A (Directory)";
     if (asset.content() != null) {
       double sizeInKb = asset.content().length / 1024.0;
-      sb.append("Size:\n").append(FILE_SIZE_FORMAT.format(sizeInKb));
-    } else {
-      sb.append("Size:\nN/A (Directory)");
+      size = FILE_SIZE_FORMAT.format(sizeInKb);
     }
 
-    metadataArea.setText(sb.toString());
-    panel.add(new JScrollPane(metadataArea), BorderLayout.CENTER);
+    addMetadataRow(panel, "Path:", asset.assetPath(), 0);
+    addMetadataRow(panel, "GUID:", asset.guid(), 1);
+    addMetadataRow(panel, "Size:", size, 2);
+
+    // Add a filler component to push everything to the top
+    GridBagConstraints gbc = new GridBagConstraints();
+    gbc.gridy = 3;
+    gbc.weighty = 1.0;
+    panel.add(new JLabel(), gbc);
+
     return panel;
   }
 
-  private JPanel createContentPanel(UnityAsset asset) {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+  private void addMetadataRow(JPanel panel, String key, String value, int gridY) {
+    GridBagConstraints gbc = new GridBagConstraints();
 
+    // Key label
+    gbc.gridx = 0;
+    gbc.gridy = gridY;
+    gbc.anchor = GridBagConstraints.FIRST_LINE_START;
+    gbc.insets = new Insets(0, 0, 10, 10);
+    gbc.weightx = 0;
+    JLabel keyLabel = new JLabel(key);
+    keyLabel.setFont(keyLabel.getFont().deriveFont(java.awt.Font.BOLD));
+    panel.add(keyLabel, gbc);
+
+    // Value text area (for wrapping and selection)
+    gbc.gridx = 1;
+    gbc.weightx = 1.0;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    JTextArea valueArea = new JTextArea(value);
+    valueArea.setWrapStyleWord(true);
+    valueArea.setLineWrap(true);
+    valueArea.setEditable(false);
+    panel.add(valueArea, gbc);
+  }
+
+  private JPanel createContentPanel(UnityAsset asset) {
     if (asset.content() == null) {
+      JPanel panel = new JPanel(new BorderLayout());
       panel.add(new JLabel("This is a directory."), BorderLayout.CENTER);
       return panel;
     }
@@ -81,18 +110,18 @@ public class AssetViewerDialog extends JDialog {
     String extension = getFileExtension(asset.assetPath());
 
     if (TEXT_EXTENSIONS.contains(extension)) {
-      JTextArea textArea = new JTextArea(new String(asset.content(), StandardCharsets.UTF_8));
-      textArea.setEditable(false);
-      textArea.setLineWrap(true);
-      textArea.setWrapStyleWord(true);
-      panel.add(new JScrollPane(textArea), BorderLayout.CENTER);
-    } else if (IMAGE_EXTENSIONS.contains(extension)) {
+      return new SyntaxTextPanel(asset);
+    }
+
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+    if (IMAGE_EXTENSIONS.contains(extension)) {
       ImageIcon imageIcon = new ImageIcon(asset.content());
       JLabel imageLabel = new JLabel(imageIcon);
       panel.add(new JScrollPane(imageLabel), BorderLayout.CENTER);
     } else if (MEDIA_EXTENSIONS.contains(extension)) {
       handleMediaAsset(asset);
-      dispose(); // Close the dialog as the media will open externally
       return null;
     } else {
       panel.add(new JLabel("Binary content cannot be previewed."), BorderLayout.CENTER);

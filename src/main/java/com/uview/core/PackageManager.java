@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -42,6 +43,12 @@ public class PackageManager {
     return activePackage.getAssets().values();
   }
 
+  public Collection<UnityAsset> getAssetsUnderPath(String pathPrefix) {
+    return getAssets().stream()
+        .filter(asset -> asset.assetPath().startsWith(pathPrefix))
+        .collect(Collectors.toList());
+  }
+
   public void addAsset(Path sourceFile, String assetPath) throws IOException {
     byte[] content = Files.readAllBytes(sourceFile);
     String metaGuid = java.util.UUID.randomUUID().toString().replace("-", "");
@@ -62,7 +69,8 @@ public class PackageManager {
     return isModified;
   }
 
-  public void extractAssets(Collection<UnityAsset> assets, Path outputDir) throws IOException {
+  public void extractAssets(Collection<UnityAsset> assets, Path outputDir, String pathPrefixToStrip)
+      throws IOException {
     if (!Files.exists(outputDir)) {
       Files.createDirectories(outputDir);
     }
@@ -70,7 +78,16 @@ public class PackageManager {
       if (asset.isDirectory()) {
         continue;
       }
-      Path targetPath = outputDir.resolve(asset.assetPath());
+      String relativePath = asset.assetPath();
+      if (pathPrefixToStrip != null && relativePath.startsWith(pathPrefixToStrip)) {
+        relativePath = relativePath.substring(pathPrefixToStrip.length());
+      }
+
+      if (relativePath.isEmpty()) {
+        continue;
+      }
+
+      Path targetPath = outputDir.resolve(relativePath);
       Files.createDirectories(targetPath.getParent());
       assert asset.content() != null;
       Files.write(targetPath, asset.content());

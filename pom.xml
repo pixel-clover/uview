@@ -91,6 +91,11 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.fifesoft</groupId>
+      <artifactId>rsyntaxtextarea</artifactId>
+      <version>3.4.0</version>
+    </dependency>
   </dependencies>
 
   <build>
