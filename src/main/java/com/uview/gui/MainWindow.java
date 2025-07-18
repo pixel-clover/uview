@@ -1,13 +1,29 @@
 package com.uview.gui;
 
 import com.uview.core.PackageManager;
+import com.uview.gui.tree.TreeEntry;
 import com.uview.io.PackageIO;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -31,8 +47,7 @@ public class MainWindow extends JFrame {
     setSize(800, 600);
     setLocationRelativeTo(null);
 
-    JMenuBar menuBar = createMenuBar();
-    setJMenuBar(menuBar);
+    setJMenuBar(createMenuBar());
 
     DefaultMutableTreeNode root = new DefaultMutableTreeNode("No package loaded.");
     treeModel = new DefaultTreeModel(root);
@@ -173,7 +188,7 @@ public class MainWindow extends JFrame {
         (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
     Object userObject = selectedNode.getUserObject();
 
-    if (userObject instanceof com.uview.gui.tree.TreeEntry entry) {
+    if (userObject instanceof TreeEntry entry) {
       packageManager.removeAsset(entry.getFullPath());
       refreshTree();
       updateState();
