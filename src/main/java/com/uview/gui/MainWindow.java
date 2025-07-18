@@ -57,10 +57,15 @@ public class MainWindow extends JFrame {
         new MouseAdapter() {
           @Override
           public void mousePressed(MouseEvent e) {
+            // Handle right-click for popup menu
             if (SwingUtilities.isRightMouseButton(e)) {
               int row = tree.getClosestRowForLocation(e.getX(), e.getY());
               tree.setSelectionRow(row);
               createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
+            }
+            // Handle double-click to view asset
+            if (e.getClickCount() == 2) {
+              handleDoubleClick();
             }
           }
         });
@@ -205,6 +210,22 @@ public class MainWindow extends JFrame {
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();
       extractAllAssetsInBackground(outputDir);
+    }
+  }
+
+  private void handleDoubleClick() {
+    TreePath selectionPath = tree.getSelectionPath();
+    if (selectionPath == null) {
+      return;
+    }
+
+    DefaultMutableTreeNode selectedNode =
+        (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
+    Object userObject = selectedNode.getUserObject();
+
+    if (userObject instanceof TreeEntry.AssetEntry entry) {
+      AssetViewerDialog viewer = new AssetViewerDialog(this, entry.asset());
+      viewer.setVisible(true);
     }
   }
 
