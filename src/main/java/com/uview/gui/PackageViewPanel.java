@@ -4,14 +4,31 @@ import com.uview.core.PackageManager;
 import com.uview.core.SettingsManager;
 import com.uview.gui.tree.TreeEntry;
 import com.uview.io.PackageIO;
-import java.awt.*;
+import com.uview.model.UnityAsset;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -24,6 +41,7 @@ public class PackageViewPanel extends JPanel {
   private final DefaultTreeModel treeModel;
   private final JFrame owner;
   private File packageFile;
+  private JTextField searchField;
 
   public PackageViewPanel(JFrame owner, File packageFile, SettingsManager settingsManager) {
     super(new BorderLayout());
@@ -32,6 +50,33 @@ public class PackageViewPanel extends JPanel {
     this.settingsManager = settingsManager;
     this.packageManager = new PackageManager(new PackageIO());
 
+    // --- Search Bar ---
+    searchField = new JTextField();
+    searchField
+        .getDocument()
+        .addDocumentListener(
+            new DocumentListener() {
+              @Override
+              public void insertUpdate(DocumentEvent e) {
+                filterTree();
+              }
+
+              @Override
+              public void removeUpdate(DocumentEvent e) {
+                filterTree();
+              }
+
+              @Override
+              public void changedUpdate(DocumentEvent e) {
+                filterTree();
+              }
+            });
+    JPanel searchPanel = new JPanel(new BorderLayout());
+    searchPanel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+    searchPanel.add(searchField, BorderLayout.CENTER);
+    add(searchPanel, BorderLayout.NORTH);
+
+    // --- Tree View ---
     DefaultMutableTreeNode root = new DefaultMutableTreeNode("Loading...");
     this.treeModel = new DefaultTreeModel(root);
     this.tree = new JTree(treeModel);
@@ -55,6 +100,17 @@ public class PackageViewPanel extends JPanel {
         });
 
     add(new JScrollPane(tree), BorderLayout.CENTER);
+  }
+
+  private void filterTree() {
+    String query = searchField.getText();
+    Collection<UnityAsset> filteredAssets = packageManager.getFilteredAssets(query);
+    DefaultMutableTreeNode root = TreeModelBuilder.build(filteredAssets);
+    treeModel.setRoot(root);
+    // Expand all nodes in the filtered view for better visibility
+    for (int i = 0; i < tree.getRowCount(); i++) {
+      tree.expandRow(i);
+    }
   }
 
   private JPopupMenu createPopupMenu() {
@@ -234,11 +290,8 @@ public class PackageViewPanel extends JPanel {
   }
 
   public void refreshTree() {
-    DefaultMutableTreeNode root = TreeModelBuilder.build(packageManager.getAssets());
-    treeModel.setRoot(root);
-    for (int i = 0; i < tree.getRowCount(); i++) {
-      tree.expandRow(i);
-    }
+    // When refreshing, apply the current filter text
+    filterTree();
   }
 
   public PackageManager getPackageManager() {

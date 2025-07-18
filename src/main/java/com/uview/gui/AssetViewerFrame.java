@@ -3,23 +3,21 @@ package com.uview.gui;
 import com.uview.model.UnityAsset;
 import java.awt.BorderLayout;
 import java.awt.Desktop;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
+import java.awt.Dimension;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
 
 public class AssetViewerFrame extends JFrame {
 
@@ -39,65 +37,43 @@ public class AssetViewerFrame extends JFrame {
     setLocationRelativeTo(owner);
     setLayout(new BorderLayout());
 
-    JPanel metadataPanel = createMetadataPanel(asset);
     JPanel contentPanel = createContentPanel(asset);
-
     if (contentPanel == null) {
       dispose(); // Frame was closed by media handler
       return;
     }
 
-    JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, metadataPanel, contentPanel);
-    splitPane.setDividerLocation(300);
-
-    add(splitPane, BorderLayout.CENTER);
+    add(contentPanel, BorderLayout.CENTER);
+    add(createFooterPanel(asset), BorderLayout.SOUTH);
   }
 
-  private JPanel createMetadataPanel(UnityAsset asset) {
-    JPanel panel = new JPanel(new GridBagLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+  private JPanel createFooterPanel(UnityAsset asset) {
+    JPanel footer = new JPanel();
+    footer.setLayout(new BoxLayout(footer, BoxLayout.X_AXIS));
+    footer.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
 
+    // Path
+    JLabel pathLabel = new JLabel(asset.assetPath());
+    pathLabel.setToolTipText(asset.assetPath()); // Show full path on hover
+
+    // Size
     String size = "N/A (Directory)";
     if (asset.content() != null) {
       double sizeInKb = asset.content().length / 1024.0;
       size = FILE_SIZE_FORMAT.format(sizeInKb);
     }
+    JLabel sizeLabel = new JLabel(size);
 
-    addMetadataRow(panel, "Path:", asset.assetPath(), 0);
-    addMetadataRow(panel, "GUID:", asset.guid(), 1);
-    addMetadataRow(panel, "Size:", size, 2);
+    // GUID
+    JLabel guidLabel = new JLabel("GUID: " + asset.guid());
 
-    // Add a filler component to push everything to the top
-    GridBagConstraints gbc = new GridBagConstraints();
-    gbc.gridy = 3;
-    gbc.weighty = 1.0;
-    panel.add(new JLabel(), gbc);
+    footer.add(pathLabel);
+    footer.add(Box.createHorizontalGlue());
+    footer.add(guidLabel);
+    footer.add(Box.createRigidArea(new Dimension(15, 0)));
+    footer.add(sizeLabel);
 
-    return panel;
-  }
-
-  private void addMetadataRow(JPanel panel, String key, String value, int gridY) {
-    GridBagConstraints gbc = new GridBagConstraints();
-
-    // Key label
-    gbc.gridx = 0;
-    gbc.gridy = gridY;
-    gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-    gbc.insets = new Insets(0, 0, 10, 10);
-    gbc.weightx = 0;
-    JLabel keyLabel = new JLabel(key);
-    keyLabel.setFont(keyLabel.getFont().deriveFont(java.awt.Font.BOLD));
-    panel.add(keyLabel, gbc);
-
-    // Value text area (for wrapping and selection)
-    gbc.gridx = 1;
-    gbc.weightx = 1.0;
-    gbc.fill = GridBagConstraints.HORIZONTAL;
-    JTextArea valueArea = new JTextArea(value);
-    valueArea.setWrapStyleWord(true);
-    valueArea.setLineWrap(true);
-    valueArea.setEditable(false);
-    panel.add(valueArea, gbc);
+    return footer;
   }
 
   private JPanel createContentPanel(UnityAsset asset) {

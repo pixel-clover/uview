@@ -7,11 +7,14 @@ import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Properties;
 import javax.swing.BorderFactory;
@@ -30,6 +33,7 @@ import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
+import javax.swing.TransferHandler;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -42,6 +46,7 @@ public class MainWindow extends JFrame {
   private JMenuItem saveMenuItem;
   private JMenuItem saveAsMenuItem;
   private JMenuItem closeMenuItem;
+  private JMenuItem extractAllMenuItem;
   private JMenu openRecentMenu;
   private JLabel statusLabel;
   private JLabel packageSizeLabel;
@@ -59,9 +64,52 @@ public class MainWindow extends JFrame {
     tabbedPane = new JTabbedPane();
     tabbedPane.addChangeListener(e -> updateState());
 
+    // **THE FIX IS HERE**: Attach the handler to the JFrame itself.
+    setTransferHandler(new FileDropHandler());
+
     add(tabbedPane, BorderLayout.CENTER);
     add(createStatusBar(), BorderLayout.SOUTH);
     updateState();
+  }
+
+  private class FileDropHandler extends TransferHandler {
+    @Override
+    public boolean canImport(TransferSupport support) {
+      if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+        return false;
+      }
+      try {
+        Transferable t = support.getTransferable();
+        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+        for (File file : files) {
+          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
+            return true; // Accept drop if at least one unitypackage is present
+          }
+        }
+      } catch (Exception e) {
+        return false;
+      }
+      return false;
+    }
+
+    @Override
+    public boolean importData(TransferSupport support) {
+      if (!canImport(support)) {
+        return false;
+      }
+      try {
+        Transferable t = support.getTransferable();
+        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+        for (File file : files) {
+          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
+            openPackage(file);
+          }
+        }
+        return true;
+      } catch (Exception e) {
+        return false;
+      }
+    }
   }
 
   private JPanel createStatusBar() {
@@ -79,7 +127,7 @@ public class MainWindow extends JFrame {
     statusBar.add(Box.createRigidArea(new Dimension(10, 0)));
     statusBar.add(memoryUsageLabel);
 
-    new Timer(1000, e -> updateMemoryUsage()).start();
+    new Timer(3000, e -> updateMemoryUsage()).start();
     updateMemoryUsage();
 
     return statusBar;
@@ -138,6 +186,12 @@ public class MainWindow extends JFrame {
     saveAsMenuItem = new JMenuItem("Save As...");
     saveAsMenuItem.addActionListener(e -> saveFileAs());
     fileMenu.add(saveAsMenuItem);
+
+    fileMenu.add(new JSeparator());
+
+    extractAllMenuItem = new JMenuItem("Extract All...");
+    extractAllMenuItem.addActionListener(e -> extractAll());
+    fileMenu.add(extractAllMenuItem);
 
     fileMenu.add(new JSeparator());
 
@@ -232,7 +286,6 @@ public class MainWindow extends JFrame {
 
   private void openPackage(File file) {
     setWorking(true, "Loading...");
-    // Pass the settings manager to the new panel
     PackageViewPanel newPanel = new PackageViewPanel(this, file, settingsManager);
     newPanel.loadPackage(
         () -> {
@@ -321,6 +374,53 @@ public class MainWindow extends JFrame {
     worker.execute();
   }
 
+  private void extractAll() {
+    PackageViewPanel currentPanel = getCurrentPanel();
+    if (currentPanel == null) return;
+
+    JFileChooser chooser = new JFileChooser();
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+    chooser.setDialogTitle("Select Directory to Extract All Assets");
+
+    if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+      Path outputDir = chooser.getSelectedFile().toPath();
+      settingsManager.setLastDirectory(outputDir.toFile());
+      extractAllInBackground(currentPanel, outputDir);
+    }
+  }
+
+  private void extractAllInBackground(PackageViewPanel panel, Path outputDir) {
+    setWorking(true, "Extracting all assets...");
+    SwingWorker<Void, Void> worker =
+        new SwingWorker<>() {
+          @Override
+          protected Void doInBackground() throws Exception {
+            // Extract all assets, stripping the root "Assets/" prefix for a clean output
+            panel
+                .getPackageManager()
+                .extractAssets(panel.getPackageManager().getAssets(), outputDir, "Assets/");
+            return null;
+          }
+
+          @Override
+          protected void done() {
+            setWorking(false, "Extraction complete.");
+            try {
+              get(); // Check for exceptions
+              Desktop.getDesktop().open(outputDir.toFile());
+            } catch (Exception ex) {
+              JOptionPane.showMessageDialog(
+                  MainWindow.this,
+                  "Extraction failed: " + ex.getCause().getMessage(),
+                  "Error",
+                  JOptionPane.ERROR_MESSAGE);
+            }
+          }
+        };
+    worker.execute();
+  }
+
   private void updateState() {
     PackageViewPanel currentPanel = getCurrentPanel();
     boolean hasPanel = currentPanel != null;
@@ -328,6 +428,7 @@ public class MainWindow extends JFrame {
     saveMenuItem.setEnabled(hasPanel && currentPanel.getPackageManager().isModified());
     saveAsMenuItem.setEnabled(hasPanel);
     closeMenuItem.setEnabled(hasPanel);
+    extractAllMenuItem.setEnabled(hasPanel);
 
     if (hasPanel) {
       int selectedIndex = tabbedPane.getSelectedIndex();

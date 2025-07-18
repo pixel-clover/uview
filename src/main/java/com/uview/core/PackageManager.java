@@ -43,6 +43,22 @@ public class PackageManager {
     return activePackage.getAssets().values();
   }
 
+  /**
+   * Filters the assets based on a search query.
+   *
+   * @param query The text to search for in asset paths.
+   * @return A collection of matching assets.
+   */
+  public Collection<UnityAsset> getFilteredAssets(String query) {
+    if (query == null || query.trim().isEmpty()) {
+      return getAssets(); // Return all assets if query is empty
+    }
+    String lowerCaseQuery = query.toLowerCase();
+    return getAssets().stream()
+        .filter(asset -> asset.assetPath().toLowerCase().contains(lowerCaseQuery))
+        .collect(Collectors.toList());
+  }
+
   public Collection<UnityAsset> getAssetsUnderPath(String pathPrefix) {
     return getAssets().stream()
         .filter(asset -> asset.assetPath().startsWith(pathPrefix))
@@ -75,7 +91,6 @@ public class PackageManager {
       Files.createDirectories(outputDir);
     }
     for (UnityAsset asset : assets) {
-      // **THE FIX IS HERE**: Skip any asset that has no content to write.
       if (asset.content() == null) {
         continue;
       }
