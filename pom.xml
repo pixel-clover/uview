@@ -6,7 +6,7 @@
 
   <groupId>com.uview</groupId>
   <artifactId>uview</artifactId>
-  <version>0.1.0-b.1</version>
+  <version>0.1.0-b.2</version>
   <packaging>jar</packaging>
 
   <name>UView</name>
