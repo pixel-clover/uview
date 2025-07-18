@@ -75,9 +75,11 @@ public class PackageManager {
       Files.createDirectories(outputDir);
     }
     for (UnityAsset asset : assets) {
-      if (asset.isDirectory()) {
+      // **THE FIX IS HERE**: Skip any asset that has no content to write.
+      if (asset.content() == null) {
         continue;
       }
+
       String relativePath = asset.assetPath();
       if (pathPrefixToStrip != null && relativePath.startsWith(pathPrefixToStrip)) {
         relativePath = relativePath.substring(pathPrefixToStrip.length());
@@ -89,7 +91,6 @@ public class PackageManager {
 
       Path targetPath = outputDir.resolve(relativePath);
       Files.createDirectories(targetPath.getParent());
-      assert asset.content() != null;
       Files.write(targetPath, asset.content());
     }
   }

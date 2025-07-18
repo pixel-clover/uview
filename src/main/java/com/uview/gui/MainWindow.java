@@ -1,18 +1,28 @@
 package com.uview.gui;
 
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.uview.App;
 import com.uview.core.PackageManager;
+import com.uview.core.SettingsManager;
 import com.uview.gui.tree.TreeEntry;
 import com.uview.io.PackageIO;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -20,12 +30,16 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -36,11 +50,16 @@ public class MainWindow extends JFrame {
 
   private final PackageIO packageIO = new PackageIO();
   private final PackageManager packageManager = new PackageManager(packageIO);
+  private final SettingsManager settingsManager = new SettingsManager();
   private final JTree tree;
   private final DefaultTreeModel treeModel;
-  private final JLabel statusLabel;
   private File currentFile;
   private JMenuItem saveMenuItem;
+  private JMenuItem closeMenuItem;
+  private JMenu openRecentMenu;
+  private JLabel statusLabel;
+  private JLabel packageSizeLabel;
+  private JLabel memoryUsageLabel;
 
   /** Constructs the main window and initializes its components. */
   public MainWindow() {
@@ -54,6 +73,7 @@ public class MainWindow extends JFrame {
     DefaultMutableTreeNode root = new DefaultMutableTreeNode("No package loaded.");
     treeModel = new DefaultTreeModel(root);
     tree = new JTree(treeModel);
+    tree.setRootVisible(false);
     tree.setCellRenderer(new FileTypeTreeCellRenderer());
     tree.addMouseListener(
         new MouseAdapter() {
@@ -61,7 +81,6 @@ public class MainWindow extends JFrame {
           public void mousePressed(MouseEvent e) {
             if (SwingUtilities.isRightMouseButton(e)) {
               int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-              // set selection on right-click to make context menu intuitive
               if (row != -1) {
                 tree.setSelectionRow(row);
                 createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
@@ -73,16 +92,52 @@ public class MainWindow extends JFrame {
           }
         });
 
-    statusLabel = new JLabel("Ready.");
-    statusLabel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-
     add(new JScrollPane(tree), BorderLayout.CENTER);
-    add(statusLabel, BorderLayout.SOUTH);
+    add(createStatusBar(), BorderLayout.SOUTH);
     updateState();
+  }
+
+  private JPanel createStatusBar() {
+    JPanel statusBar = new JPanel();
+    statusBar.setLayout(new BoxLayout(statusBar, BoxLayout.X_AXIS));
+    statusBar.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+
+    statusLabel = new JLabel("Ready");
+    packageSizeLabel = new JLabel("");
+    memoryUsageLabel = new JLabel("");
+
+    statusBar.add(statusLabel);
+    statusBar.add(Box.createHorizontalGlue());
+    statusBar.add(packageSizeLabel);
+    statusBar.add(Box.createRigidArea(new Dimension(10, 0)));
+    statusBar.add(memoryUsageLabel);
+
+    // Timer to update memory usage every second
+    new Timer(1000, e -> updateMemoryUsage()).start();
+    updateMemoryUsage(); // Initial update
+
+    return statusBar;
+  }
+
+  private void updateMemoryUsage() {
+    Runtime runtime = Runtime.getRuntime();
+    long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+    memoryUsageLabel.setText(String.format("Mem: %s", formatSize(usedMemory)));
+  }
+
+  private static String formatSize(long bytes) {
+    if (bytes < 1024) {
+      return bytes + " B";
+    }
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    char pre = "KMGTPE".charAt(exp - 1);
+    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
   }
 
   private JMenuBar createMenuBar() {
     JMenuBar menuBar = new JMenuBar();
+
+    // --- File Menu ---
     JMenu fileMenu = new JMenu("File");
     menuBar.add(fileMenu);
 
@@ -94,6 +149,29 @@ public class MainWindow extends JFrame {
     openMenuItem.addActionListener(e -> openFile());
     fileMenu.add(openMenuItem);
 
+    openRecentMenu = new JMenu("Open Recent");
+    fileMenu.add(openRecentMenu);
+
+    closeMenuItem = new JMenuItem("Close");
+    closeMenuItem.addActionListener(e -> closePackage());
+    fileMenu.add(closeMenuItem);
+
+    fileMenu.addMenuListener(
+        new MenuListener() {
+          @Override
+          public void menuSelected(MenuEvent e) {
+            populateRecentFilesMenu();
+          }
+
+          @Override
+          public void menuDeselected(MenuEvent e) {}
+
+          @Override
+          public void menuCanceled(MenuEvent e) {}
+        });
+
+    fileMenu.add(new JSeparator());
+
     saveMenuItem = new JMenuItem("Save");
     saveMenuItem.addActionListener(e -> saveFile());
     fileMenu.add(saveMenuItem);
@@ -102,7 +180,85 @@ public class MainWindow extends JFrame {
     saveAsMenuItem.addActionListener(e -> saveFileAs());
     fileMenu.add(saveAsMenuItem);
 
+    fileMenu.add(new JSeparator());
+
+    JMenuItem exitMenuItem = new JMenuItem("Exit");
+    exitMenuItem.addActionListener(e -> System.exit(0));
+    fileMenu.add(exitMenuItem);
+
+    // --- Help Menu ---
+    JMenu helpMenu = new JMenu("Help");
+    menuBar.add(helpMenu);
+
+    JMenuItem aboutMenuItem = new JMenuItem("About UView");
+    aboutMenuItem.addActionListener(e -> showAboutDialog());
+    helpMenu.add(aboutMenuItem);
+
     return menuBar;
+  }
+
+  private void showAboutDialog() {
+    String version = getAppVersion();
+    String title = "About UView";
+    String message =
+        "<html><body style='width: 300px;'>"
+            + "<h2>UView</h2>"
+            + "<p><b>Version:</b> "
+            + version
+            + "</p>"
+            + "<p>A desktop tool for viewing and modifying Unity packages.</p>"
+            + "<p><b>GitHub:</b> <a href='https://github.com/habedi/uview'>https://github.com/habedi/uview</a></p>"
+            + "</body></html>";
+
+    java.net.URL iconUrl = App.class.getResource("/logo.svg");
+    Icon aboutIcon = (iconUrl != null) ? new FlatSVGIcon(iconUrl).derive(64, 64) : null;
+
+    // We use a JLabel with HTML to make the link clickable
+    JLabel messageLabel = new JLabel(message);
+    messageLabel.addMouseListener(
+        new MouseAdapter() {
+          @Override
+          public void mouseClicked(MouseEvent e) {
+            try {
+              Desktop.getDesktop().browse(new java.net.URI("https://github.com/habedi/uview"));
+            } catch (Exception ex) {
+              // Silently fail if browser can't be opened
+            }
+          }
+        });
+
+    JOptionPane.showMessageDialog(
+        this, messageLabel, title, JOptionPane.INFORMATION_MESSAGE, aboutIcon);
+  }
+
+  private String getAppVersion() {
+    try (InputStream is =
+        App.class.getResourceAsStream("/META-INF/maven/com.uview/uview/pom.properties")) {
+      if (is == null) {
+        return "N/A";
+      }
+      Properties props = new Properties();
+      props.load(is);
+      return props.getProperty("version", "N/A");
+    } catch (IOException e) {
+      return "N/A";
+    }
+  }
+
+  private void populateRecentFilesMenu() {
+    openRecentMenu.removeAll();
+    List<File> recentFiles = settingsManager.getRecentFiles();
+    if (recentFiles.isEmpty()) {
+      openRecentMenu.setEnabled(false);
+      return;
+    }
+
+    openRecentMenu.setEnabled(true);
+    for (File file : recentFiles) {
+      JMenuItem menuItem = new JMenuItem(file.getAbsolutePath());
+      menuItem.addActionListener(e -> loadPackageInBackground(file));
+      openRecentMenu.add(menuItem);
+    }
   }
 
   private JPopupMenu createPopupMenu() {
@@ -137,7 +293,6 @@ public class MainWindow extends JFrame {
     extractAllMenuItem.addActionListener(e -> extractAllAssets());
     popup.add(extractAllMenuItem);
 
-    // Only enable the "View" item if the selected node is a file asset
     if (isNodeSelected) {
       DefaultMutableTreeNode selectedNode =
           (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
@@ -150,32 +305,42 @@ public class MainWindow extends JFrame {
   }
 
   private void newPackage() {
-    packageManager.createNew();
-    currentFile = null;
-    refreshTree();
-    updateState();
-    statusLabel.setText("New package created.");
+    if (confirmClose()) {
+      packageManager.createNew();
+      currentFile = null;
+      refreshTree();
+      updateState();
+      statusLabel.setText("New package created");
+      packageSizeLabel.setText("");
+    }
   }
 
   private void openFile() {
+    if (!confirmClose()) {
+      return;
+    }
     JFileChooser chooser = new JFileChooser();
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      currentFile = chooser.getSelectedFile();
-      loadPackageInBackground(currentFile);
+      File selectedFile = chooser.getSelectedFile();
+      settingsManager.setLastDirectory(selectedFile.getParentFile());
+      loadPackageInBackground(selectedFile);
     }
   }
 
-  private void saveFile() {
+  private boolean saveFile() {
     if (currentFile == null) {
-      saveFileAs();
+      return saveFileAs();
     } else {
       savePackageInBackground(currentFile);
+      return true;
     }
   }
 
-  private void saveFileAs() {
+  private boolean saveFileAs() {
     JFileChooser chooser = new JFileChooser();
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
     if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
       File selectedFile = chooser.getSelectedFile();
@@ -184,12 +349,50 @@ public class MainWindow extends JFrame {
             new File(selectedFile.getParentFile(), selectedFile.getName() + ".unitypackage");
       }
       currentFile = selectedFile;
+      settingsManager.setLastDirectory(selectedFile.getParentFile());
       savePackageInBackground(currentFile);
+      return true;
+    }
+    return false;
+  }
+
+  private void closePackage() {
+    if (confirmClose()) {
+      packageManager.createNew();
+      currentFile = null;
+      refreshTree();
+      updateState();
+      statusLabel.setText("Package closed");
+      packageSizeLabel.setText("");
+    }
+  }
+
+  private boolean confirmClose() {
+    if (!packageManager.isModified()) {
+      return true;
+    }
+    int result =
+        JOptionPane.showConfirmDialog(
+            this,
+            "The current package has unsaved changes. Do you want to save them?",
+            "Unsaved Changes",
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+
+    switch (result) {
+      case JOptionPane.YES_OPTION:
+        return saveFile();
+      case JOptionPane.NO_OPTION:
+        return true;
+      case JOptionPane.CANCEL_OPTION:
+      default:
+        return false;
     }
   }
 
   private void addFile() {
     JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setCurrentDirectory(settingsManager.getLastDirectory());
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path sourceFile = fileChooser.getSelectedFile().toPath();
       String assetPath =
@@ -238,9 +441,11 @@ public class MainWindow extends JFrame {
     }
 
     JFileChooser chooser = new JFileChooser();
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();
+      settingsManager.setLastDirectory(outputDir.toFile());
       extractInBackground(entry, outputDir);
     }
   }
@@ -250,10 +455,11 @@ public class MainWindow extends JFrame {
       return;
     }
     JFileChooser chooser = new JFileChooser();
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();
-      // For "Extract All", we pass an empty TreeEntry to signify the root.
+      settingsManager.setLastDirectory(outputDir.toFile());
       extractInBackground(new TreeEntry.DirectoryEntry(""), outputDir);
     }
   }
@@ -276,6 +482,7 @@ public class MainWindow extends JFrame {
 
   private void loadPackageInBackground(File file) {
     setWorking(true, "Loading " + file.getName() + "...");
+    currentFile = file;
     SwingWorker<Void, Void> worker =
         new SwingWorker<>() {
           @Override
@@ -287,7 +494,13 @@ public class MainWindow extends JFrame {
           @Override
           protected void done() {
             handleTaskCompletion(
-                this, () -> statusLabel.setText("Loaded " + file.getName()), "Error loading file.");
+                this,
+                () -> {
+                  statusLabel.setText("Loaded " + file.getName());
+                  packageSizeLabel.setText(String.format("Size: %s", formatSize(file.length())));
+                  settingsManager.addRecentFile(file);
+                },
+                "Error loading file.");
           }
         };
     worker.execute();
@@ -306,7 +519,12 @@ public class MainWindow extends JFrame {
           @Override
           protected void done() {
             handleTaskCompletion(
-                this, () -> statusLabel.setText("Saved " + file.getName()), "Error saving file.");
+                this,
+                () -> {
+                  statusLabel.setText("Saved " + file.getName());
+                  packageSizeLabel.setText(String.format("Size: %s", formatSize(file.length())));
+                },
+                "Error saving file.");
           }
         };
     worker.execute();
@@ -318,16 +536,18 @@ public class MainWindow extends JFrame {
         new SwingWorker<>() {
           @Override
           protected Void doInBackground() throws Exception {
-            String pathPrefix = entry.getFullPath();
             Collection<com.uview.model.UnityAsset> assetsToExtract;
+            String pathPrefixToStrip;
+
             if (entry instanceof TreeEntry.AssetEntry assetEntry) {
-              // Extracting a single file
               assetsToExtract = List.of(assetEntry.asset());
+              String parentPath = new File(assetEntry.asset().assetPath()).getParent();
+              pathPrefixToStrip = (parentPath == null) ? "" : parentPath + "/";
             } else {
-              // Extracting a directory
-              assetsToExtract = packageManager.getAssetsUnderPath(pathPrefix);
+              pathPrefixToStrip = entry.getFullPath();
+              assetsToExtract = packageManager.getAssetsUnderPath(pathPrefixToStrip);
             }
-            packageManager.extractAssets(assetsToExtract, outputDir, pathPrefix);
+            packageManager.extractAssets(assetsToExtract, outputDir, pathPrefixToStrip);
             return null;
           }
 
@@ -336,7 +556,7 @@ public class MainWindow extends JFrame {
             handleTaskCompletion(
                 this,
                 () -> {
-                  statusLabel.setText("Extraction complete.");
+                  statusLabel.setText("Extraction complete");
                   try {
                     Desktop.getDesktop().open(outputDir.toFile());
                   } catch (Exception ex) {
@@ -352,7 +572,7 @@ public class MainWindow extends JFrame {
   private void handleTaskCompletion(
       SwingWorker<?, ?> worker, Runnable onSuccess, String errorPrefix) {
     try {
-      worker.get(); // Check for exceptions from doInBackground
+      worker.get();
       refreshTree();
       updateState();
       onSuccess.run();
@@ -360,27 +580,41 @@ public class MainWindow extends JFrame {
       showError(errorPrefix + " " + ex.getCause().getMessage());
       statusLabel.setText(errorPrefix);
     } finally {
-      setWorking(false, null);
+      String finalStatus;
+      if (currentFile != null) {
+        finalStatus = "Loaded " + currentFile.getName();
+      } else {
+        finalStatus = "Ready";
+      }
+      setWorking(false, finalStatus);
     }
   }
 
   private void refreshTree() {
-    String rootName = (currentFile != null) ? currentFile.getName() : "New Package";
-    DefaultMutableTreeNode root = TreeModelBuilder.build(packageManager.getAssets(), rootName);
+    DefaultMutableTreeNode root = TreeModelBuilder.build(packageManager.getAssets());
     treeModel.setRoot(root);
-    for (int i = 0; i < tree.getRowCount(); i++) {
-      tree.expandRow(i);
+    if (currentFile == null) {
+      DefaultMutableTreeNode placeholderRoot = new DefaultMutableTreeNode("No package loaded.");
+      treeModel.setRoot(placeholderRoot);
+      tree.setRootVisible(true);
+    } else {
+      tree.setRootVisible(false);
+      for (int i = 0; i < tree.getRowCount(); i++) {
+        tree.expandRow(i);
+      }
     }
   }
 
   private void updateState() {
+    boolean hasFile = currentFile != null;
     boolean isModified = packageManager.isModified();
+
     saveMenuItem.setEnabled(isModified);
+    closeMenuItem.setEnabled(hasFile);
+
     String title = "UView";
-    if (currentFile != null) {
+    if (hasFile) {
       title += " - " + currentFile.getName();
-    } else {
-      title += " - New Package";
     }
     if (isModified) {
       title += "*";
