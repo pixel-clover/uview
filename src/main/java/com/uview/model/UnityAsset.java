@@ -36,8 +36,15 @@ public record UnityAsset(
     return previewContent == null ? null : Arrays.copyOf(previewContent, previewContent.length);
   }
 
+  /**
+   * Returns true if this asset represents a directory.
+   *
+   * @return true if the asset has no content, false otherwise.
+   */
   public boolean isDirectory() {
-    return content == null && assetPath.endsWith("/");
+    // The most reliable way to determine if an asset is a directory is by checking if it
+    // has content. A file asset will always have a non-null (though possibly empty) content array.
+    return content == null;
   }
 
   @Override

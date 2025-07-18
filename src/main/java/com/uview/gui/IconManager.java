@@ -27,6 +27,10 @@ public final class IconManager {
     ICON_CACHE.put("gif", loadIcon("file_image.svg"));
     ICON_CACHE.put("tga", loadIcon("file_image.svg"));
     ICON_CACHE.put("psd", loadIcon("file_image.svg"));
+    ICON_CACHE.put("bmp", loadIcon("file_image.svg"));
+    ICON_CACHE.put("svg", loadIcon("file_image.svg"));
+    ICON_CACHE.put("tiff", loadIcon("file_image.svg"));
+    ICON_CACHE.put("ttf", loadIcon("file_font.svg"));
     ICON_CACHE.put("shader", loadIcon("file_code.svg"));
     ICON_CACHE.put("fbx", loadIcon("file_archive.svg"));
     ICON_CACHE.put("prefab", loadIcon("file_assembly.svg"));
@@ -41,6 +45,10 @@ public final class IconManager {
     ICON_CACHE.put("json", loadIcon("file_json.svg"));
     ICON_CACHE.put("xml", loadIcon("file_xml.svg"));
     ICON_CACHE.put("controller", loadIcon("file_controller.svg"));
+    ICON_CACHE.put("asmdef", loadIcon("file_assembly.svg"));
+    ICON_CACHE.put("css", loadIcon("file_css.svg"));
+    ICON_CACHE.put("uss", loadIcon("file_css.svg"));
+    ICON_CACHE.put("html", loadIcon("file_html.svg"));
   }
 
   private IconManager() {}

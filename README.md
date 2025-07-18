@@ -10,12 +10,11 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/habedi/uview/tests.yml?label=tests&style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/uview/actions/workflows/tests.yml)
 [![Code Coverage](https://img.shields.io/codecov/c/github/habedi/uview?style=flat&labelColor=282c34&logo=codecov)](https://codecov.io/gh/habedi/uview)
 [![Code Quality](https://img.shields.io/codefactor/grade/github/habedi/uview?style=flat&labelColor=282c34&logo=codefactor)](https://www.codefactor.io/repository/github/habedi/uview)
-[![Docs](https://img.shields.io/badge/docs-latest-007ec6?style=flat&labelColor=282c34&logo=readthedocs)](docs)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-007ec6?style=flat&labelColor=282c34&logo=open-source-initiative)](https://github.com/habedi/uview)
 [![Release](https://img.shields.io/github/release/habedi/uview.svg?style=flat&labelColor=282c34&logo=github)](https://github.com/habedi/uview/releases/latest)
 
-UView is an application for viewing and working with Unity package files outside of the Unity editor.
-It allows you to view, extract, and modify contents of `.unitypackage` files without needing to import them into a Unity project.
+UView is an application for viewing and working with Unity package files without using the Unity Editor.
+It allows you to view, extract, and modify contents of `.unitypackage` files without needing to import them into a Unity project first.
 
 ## Features
 

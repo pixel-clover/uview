@@ -4,10 +4,28 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class UnityPackage {
+  private static final Logger LOGGER = LogManager.getLogger(UnityPackage.class);
   private final Map<String, UnityAsset> assetsByGuid = new HashMap<>();
   private final Map<String, String> pathToGuid = new HashMap<>();
+
+  private static String getString(byte[] pathnameBytes) {
+    String pathname = new String(pathnameBytes, StandardCharsets.UTF_8);
+
+    // DEFINITIVE FIX: Based on the logs, we now know the exact problem.
+    // 1. Remove all control characters, which gets rid of the newline (\n).
+    //    This turns "File.cs\n00" into "File.cs00".
+    pathname = pathname.replaceAll("\\p{Cntrl}", "");
+
+    // 2. Now that the newline is gone, check for and remove the literal "00" suffix.
+    if (pathname.endsWith("00")) {
+      pathname = pathname.substring(0, pathname.length() - 2);
+    }
+    return pathname;
+  }
 
   public void loadFromRawData(Map<String, Map<String, byte[]>> rawData) {
     clear();
@@ -17,7 +35,14 @@ public class UnityPackage {
       if (!files.containsKey("pathname")) {
         continue;
       }
-      String pathname = new String(files.get("pathname"), StandardCharsets.UTF_8).trim();
+
+      byte[] pathnameBytes = files.get("pathname");
+      if (pathnameBytes == null) {
+        continue;
+      }
+
+      String pathname = getString(pathnameBytes);
+
       UnityAsset asset =
           new UnityAsset(
               guid,

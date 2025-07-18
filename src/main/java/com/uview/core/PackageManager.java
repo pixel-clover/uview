@@ -8,12 +8,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class PackageManager {
   private static final Logger LOGGER = LogManager.getLogger(PackageManager.class);
+  private static final long MAX_ASSET_SIZE_BYTES = 512 * 1024 * 1024; // 512 MB limit
   private final PackageIO packageIO;
   private UnityPackage activePackage = new UnityPackage();
   private boolean isModified = false;
@@ -66,6 +68,12 @@ public class PackageManager {
   }
 
   public void addAsset(Path sourceFile, String assetPath) throws IOException {
+    if (Files.size(sourceFile) > MAX_ASSET_SIZE_BYTES) {
+      throw new IOException(
+          String.format(
+              "File is too large (%.1f MB). Maximum allowed size is %d MB.",
+              Files.size(sourceFile) / (1024.0 * 1024.0), MAX_ASSET_SIZE_BYTES / (1024 * 1024)));
+    }
     byte[] content = Files.readAllBytes(sourceFile);
     String metaGuid = java.util.UUID.randomUUID().toString().replace("-", "");
     String metaContent = String.format("fileFormatVersion: 2\nguid: %s\n", metaGuid);
@@ -79,6 +87,23 @@ public class PackageManager {
     activePackage.removeAssetByPath(assetPath);
     isModified = true;
     LOGGER.info("Staged asset {} for removal", assetPath);
+  }
+
+  public void removeDirectory(String pathPrefix) {
+    // Ensure the prefix ends with a slash to avoid matching "Assets/Tex" with "Assets/Texture"
+    String normalizedPrefix = pathPrefix.endsWith("/") ? pathPrefix : pathPrefix + "/";
+    List<String> pathsToRemove =
+        getAssets().stream()
+            .map(UnityAsset::assetPath)
+            .filter(p -> p.startsWith(normalizedPrefix))
+            .collect(Collectors.toList());
+
+    if (!pathsToRemove.isEmpty()) {
+      pathsToRemove.forEach(activePackage::removeAssetByPath);
+      isModified = true;
+      LOGGER.info(
+          "Staged directory {} and its {} contents for removal", pathPrefix, pathsToRemove.size());
+    }
   }
 
   public boolean isModified() {

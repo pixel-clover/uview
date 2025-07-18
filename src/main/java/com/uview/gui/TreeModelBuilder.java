@@ -6,7 +6,6 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import javax.swing.tree.DefaultMutableTreeNode;
 
 public final class TreeModelBuilder {
@@ -17,7 +16,8 @@ public final class TreeModelBuilder {
     // A temporary root to build the full package hierarchy under.
     DefaultMutableTreeNode masterRoot = new DefaultMutableTreeNode("master-root");
     if (assets == null || assets.isEmpty()) {
-      return new DefaultMutableTreeNode("Assets");
+      // Return a root that can indicate emptiness, the view panel can handle this.
+      return masterRoot;
     }
 
     Map<String, DefaultMutableTreeNode> nodeMap = new HashMap<>();
@@ -43,9 +43,9 @@ public final class TreeModelBuilder {
       }
     }
 
-    // Find the "Assets" node, which now contains the correct full hierarchy.
-    DefaultMutableTreeNode assetsNode = nodeMap.get("Assets");
-    return Objects.requireNonNullElseGet(assetsNode, () -> new DefaultMutableTreeNode("Assets"));
+    // Return the master root itself. The JTree is set with setRootVisible(false),
+    // so this root won't be seen, but its children (the actual top-level package folders) will.
+    return masterRoot;
   }
 
   private static DefaultMutableTreeNode getOrCreatePath(

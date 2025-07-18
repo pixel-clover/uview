@@ -1,5 +1,6 @@
 package com.uview.gui;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.uview.core.PackageManager;
 import com.uview.core.SettingsManager;
 import com.uview.gui.tree.TreeEntry;
@@ -8,6 +9,7 @@ import com.uview.model.UnityAsset;
 import java.awt.BorderLayout;
 import java.awt.Cursor;
 import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -27,6 +29,7 @@ import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -40,8 +43,9 @@ public class PackageViewPanel extends JPanel {
   private final JTree tree;
   private final DefaultTreeModel treeModel;
   private final JFrame owner;
+  private final Timer searchDebounceTimer;
   private File packageFile;
-  private JTextField searchField;
+  private final JTextField searchField;
 
   public PackageViewPanel(JFrame owner, File packageFile, SettingsManager settingsManager) {
     super(new BorderLayout());
@@ -51,24 +55,28 @@ public class PackageViewPanel extends JPanel {
     this.packageManager = new PackageManager(new PackageIO());
 
     // --- Search Bar ---
+    searchDebounceTimer = new Timer(300, e -> filterTree()); // 300ms delay
+    searchDebounceTimer.setRepeats(false);
+
     searchField = new JTextField();
+    searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Type to search...");
     searchField
         .getDocument()
         .addDocumentListener(
             new DocumentListener() {
               @Override
               public void insertUpdate(DocumentEvent e) {
-                filterTree();
+                searchDebounceTimer.restart();
               }
 
               @Override
               public void removeUpdate(DocumentEvent e) {
-                filterTree();
+                searchDebounceTimer.restart();
               }
 
               @Override
               public void changedUpdate(DocumentEvent e) {
-                filterTree();
+                searchDebounceTimer.restart();
               }
             });
     JPanel searchPanel = new JPanel(new BorderLayout());
@@ -80,16 +88,19 @@ public class PackageViewPanel extends JPanel {
     DefaultMutableTreeNode root = new DefaultMutableTreeNode("Loading...");
     this.treeModel = new DefaultTreeModel(root);
     this.tree = new JTree(treeModel);
-    tree.setRootVisible(false);
+    tree.setRootVisible(true); // Set to true initially to show "Loading..."
     tree.setCellRenderer(new FileTypeTreeCellRenderer());
     tree.addMouseListener(
         new MouseAdapter() {
           @Override
           public void mousePressed(MouseEvent e) {
             if (SwingUtilities.isRightMouseButton(e)) {
-              int row = tree.getClosestRowForLocation(e.getX(), e.getY());
-              if (row != -1) {
-                tree.setSelectionRow(row);
+              // Only show menu if we are not on an info message node
+              TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
+              if (path != null && tree.getModel().getChildCount(path.getLastPathComponent()) > 0) {
+                tree.setSelectionPath(path);
+              }
+              if (tree.getSelectionPath() != null) {
                 createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
               }
             }
@@ -106,10 +117,24 @@ public class PackageViewPanel extends JPanel {
     String query = searchField.getText();
     Collection<UnityAsset> filteredAssets = packageManager.getFilteredAssets(query);
     DefaultMutableTreeNode root = TreeModelBuilder.build(filteredAssets);
-    treeModel.setRoot(root);
-    // Expand all nodes in the filtered view for better visibility
-    for (int i = 0; i < tree.getRowCount(); i++) {
-      tree.expandRow(i);
+
+    if (root.getChildCount() == 0) {
+      String message;
+      if (query.trim().isEmpty()) {
+        message = "Package is empty or its format could not be read.";
+      } else {
+        message = "No assets found matching '" + query + "'";
+      }
+      DefaultMutableTreeNode messageNode = new DefaultMutableTreeNode(message);
+      treeModel.setRoot(messageNode);
+      tree.setRootVisible(true); // Show the message node
+    } else {
+      treeModel.setRoot(root);
+      tree.setRootVisible(false); // Hide the master root for normal view
+      // Expand all nodes in the filtered view for better visibility
+      for (int i = 0; i < tree.getRowCount(); i++) {
+        tree.expandRow(i);
+      }
     }
   }
 
@@ -173,7 +198,9 @@ public class PackageViewPanel extends JPanel {
               get();
               refreshTree();
             } catch (Exception ex) {
-              treeModel.setRoot(new DefaultMutableTreeNode("Error loading file."));
+              treeModel.setRoot(
+                  new DefaultMutableTreeNode("Error loading file: " + ex.getMessage()));
+              tree.setRootVisible(true);
             } finally {
               onDone.run();
             }
@@ -182,11 +209,19 @@ public class PackageViewPanel extends JPanel {
     worker.execute();
   }
 
+  private JFileChooser createFileChooser(String title) {
+    JFileChooser chooser = new JFileChooser();
+    chooser.setDialogTitle(title);
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    chooser.setPreferredSize(new Dimension(1024, 768));
+    return chooser;
+  }
+
   private void addFile() {
-    JFileChooser fileChooser = new JFileChooser();
-    fileChooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    JFileChooser fileChooser = createFileChooser("Add File to Package");
     if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path sourceFile = fileChooser.getSelectedFile().toPath();
+      settingsManager.setLastDirectory(sourceFile.toFile().getParentFile());
       String assetPath =
           JOptionPane.showInputDialog(this, "Enter the asset path (e.g., Assets/MyFile.txt):");
       if (assetPath != null && !assetPath.trim().isEmpty()) {
@@ -209,7 +244,20 @@ public class PackageViewPanel extends JPanel {
     DefaultMutableTreeNode selectedNode =
         (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
     Object userObject = selectedNode.getUserObject();
-    if (userObject instanceof TreeEntry entry) {
+
+    if (userObject instanceof TreeEntry.DirectoryEntry entry) {
+      int result =
+          JOptionPane.showConfirmDialog(
+              this,
+              "Are you sure you want to remove this directory and all its contents?",
+              "Confirm Removal",
+              JOptionPane.YES_NO_OPTION,
+              JOptionPane.WARNING_MESSAGE);
+      if (result == JOptionPane.YES_OPTION) {
+        packageManager.removeDirectory(entry.getFullPath());
+        refreshTree();
+      }
+    } else if (userObject instanceof TreeEntry.AssetEntry entry) {
       packageManager.removeAsset(entry.getFullPath());
       refreshTree();
     }
@@ -226,8 +274,7 @@ public class PackageViewPanel extends JPanel {
       return;
     }
 
-    JFileChooser chooser = new JFileChooser();
-    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    JFileChooser chooser = createFileChooser("Select Directory for Extraction");
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
     if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();

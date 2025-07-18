@@ -1,32 +1,41 @@
 package com.uview.gui;
 
 import com.uview.model.UnityAsset;
-import java.awt.BorderLayout;
-import java.awt.Desktop;
-import java.awt.Dimension;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
+import javax.swing.*;
 
 public class AssetViewerFrame extends JFrame {
 
   private static final Set<String> TEXT_EXTENSIONS =
       Set.of(
-          "cs", "java", "js", "txt", "json", "xml", "shader", "mat", "unity", "asset", "prefab",
-          "html", "css", "sql", "sh");
+          "cs",
+          "java",
+          "js",
+          "txt",
+          "json",
+          "asmdef",
+          "xml",
+          "shader",
+          "mat",
+          "unity",
+          "asset",
+          "prefab",
+          "html",
+          "css",
+          "uss",
+          "sql",
+          "sh",
+          "yaml",
+          "md",
+          "controller",
+          "meta");
   private static final Set<String> IMAGE_EXTENSIONS =
-      Set.of("png", "jpg", "jpeg", "gif", "tga", "bmp");
+      Set.of("png", "jpg", "jpeg", "gif", "tga", "bmp", "webp", "svg", "ico", "avif", "tiff");
   private static final Set<String> MEDIA_EXTENSIONS = Set.of("mp4", "mov", "wav", "mp3", "ogg");
   private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("#,##0.0 KB");
 
@@ -113,6 +122,7 @@ public class AssetViewerFrame extends JFrame {
                   "uview-preview-", asset.assetPath().replaceAll("[^a-zA-Z0-9.-]", "_"))
               .toFile();
       tempFile.deleteOnExit();
+      assert asset.content() != null;
       Files.write(tempFile.toPath(), asset.content());
 
       if (Desktop.isDesktopSupported()) {

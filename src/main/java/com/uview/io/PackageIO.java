@@ -29,9 +29,23 @@ public class PackageIO {
         if (entry.isDirectory()) {
           continue;
         }
-        java.nio.file.Path path = java.nio.file.Path.of(entry.getName());
-        String guid = path.getParent().toString();
-        String fileName = path.getFileName().toString();
+
+        // FIX: Clean the raw entry name from the tar header itself to remove any padding.
+        String entryName = entry.getName();
+        int nullIndex = entryName.indexOf(0);
+        if (nullIndex != -1) {
+          entryName = entryName.substring(0, nullIndex);
+        }
+        entryName = entryName.replace('\\', '/');
+
+        int lastSlashIndex = entryName.lastIndexOf('/');
+        if (lastSlashIndex == -1) {
+          continue;
+        }
+
+        String guid = entryName.substring(0, lastSlashIndex);
+        String fileName = entryName.substring(lastSlashIndex + 1);
+
         byte[] data = tarIn.readAllBytes();
         rawData.computeIfAbsent(guid, k -> new HashMap<>()).put(fileName, data);
       }

@@ -42,13 +42,14 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class MainWindow extends JFrame {
 
   private final SettingsManager settingsManager = new SettingsManager();
-  private JTabbedPane tabbedPane;
+  private final JTabbedPane tabbedPane;
   private JMenuItem saveMenuItem;
   private JMenuItem saveAsMenuItem;
   private JMenuItem closeMenuItem;
   private JMenuItem extractAllMenuItem;
   private JMenu openRecentMenu;
   private JLabel statusLabel;
+  private JLabel fileCountLabel;
   private JLabel packageSizeLabel;
   private JLabel memoryUsageLabel;
 
@@ -64,7 +65,6 @@ public class MainWindow extends JFrame {
     tabbedPane = new JTabbedPane();
     tabbedPane.addChangeListener(e -> updateState());
 
-    // **THE FIX IS HERE**: Attach the handler to the JFrame itself.
     setTransferHandler(new FileDropHandler());
 
     add(tabbedPane, BorderLayout.CENTER);
@@ -118,13 +118,16 @@ public class MainWindow extends JFrame {
     statusBar.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
     statusLabel = new JLabel("Ready");
+    fileCountLabel = new JLabel("");
     packageSizeLabel = new JLabel("");
     memoryUsageLabel = new JLabel("");
 
     statusBar.add(statusLabel);
     statusBar.add(Box.createHorizontalGlue());
+    statusBar.add(fileCountLabel);
+    statusBar.add(Box.createRigidArea(new Dimension(15, 0)));
     statusBar.add(packageSizeLabel);
-    statusBar.add(Box.createRigidArea(new Dimension(10, 0)));
+    statusBar.add(Box.createRigidArea(new Dimension(15, 0)));
     statusBar.add(memoryUsageLabel);
 
     new Timer(3000, e -> updateMemoryUsage()).start();
@@ -269,13 +272,20 @@ public class MainWindow extends JFrame {
     }
   }
 
+  private JFileChooser createFileChooser(String title) {
+    JFileChooser chooser = new JFileChooser();
+    chooser.setDialogTitle(title);
+    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    chooser.setPreferredSize(new Dimension(1024, 768));
+    return chooser;
+  }
+
   private void newPackage() {
     openPackage(null);
   }
 
   private void openFile() {
-    JFileChooser chooser = new JFileChooser();
-    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    JFileChooser chooser = createFileChooser("Open Unity Package");
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       File selectedFile = chooser.getSelectedFile();
@@ -322,8 +332,7 @@ public class MainWindow extends JFrame {
     PackageViewPanel currentPanel = getCurrentPanel();
     if (currentPanel == null) return;
 
-    JFileChooser chooser = new JFileChooser();
-    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    JFileChooser chooser = createFileChooser("Save Unity Package As...");
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
     if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
       File selectedFile = chooser.getSelectedFile();
@@ -378,10 +387,8 @@ public class MainWindow extends JFrame {
     PackageViewPanel currentPanel = getCurrentPanel();
     if (currentPanel == null) return;
 
-    JFileChooser chooser = new JFileChooser();
-    chooser.setCurrentDirectory(settingsManager.getLastDirectory());
+    JFileChooser chooser = createFileChooser("Select Directory to Extract All Assets");
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-    chooser.setDialogTitle("Select Directory to Extract All Assets");
 
     if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
       Path outputDir = chooser.getSelectedFile().toPath();
@@ -435,9 +442,12 @@ public class MainWindow extends JFrame {
       tabbedPane.setTitleAt(selectedIndex, currentPanel.getTabTitle());
 
       File file = currentPanel.getPackageFile();
+      int fileCount = currentPanel.getPackageManager().getAssets().size();
+      fileCountLabel.setText(String.format("Files: %,d", fileCount));
+
       if (file != null) {
         setTitle("UView - " + file.getName());
-        statusLabel.setText("Loaded " + file.getName());
+        statusLabel.setText("Loaded '" + file.getName() + "'");
         packageSizeLabel.setText(String.format("Size: %s", formatSize(file.length())));
       } else {
         setTitle("UView - New Package");
@@ -447,6 +457,7 @@ public class MainWindow extends JFrame {
     } else {
       setTitle("UView");
       statusLabel.setText("Ready");
+      fileCountLabel.setText("");
       packageSizeLabel.setText("");
     }
   }

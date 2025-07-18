@@ -1,9 +1,9 @@
 package com.uview.gui;
 
 import com.uview.model.UnityAsset;
-import java.awt.BorderLayout;
+import java.awt.*;
 import java.nio.charset.StandardCharsets;
-import javax.swing.JPanel;
+import javax.swing.*;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -41,10 +41,10 @@ public class SyntaxTextPanel extends JPanel {
           case "cs" -> SyntaxConstants.SYNTAX_STYLE_CSHARP;
           case "java" -> SyntaxConstants.SYNTAX_STYLE_JAVA;
           case "js" -> SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT;
-          case "json" -> SyntaxConstants.SYNTAX_STYLE_JSON;
-          case "unity", "asset", "prefab", "mat" -> SyntaxConstants.SYNTAX_STYLE_YAML;
+          case "json", "asmdef" -> SyntaxConstants.SYNTAX_STYLE_JSON;
+          case "unity", "asset", "prefab", "mat", "controller" -> SyntaxConstants.SYNTAX_STYLE_YAML;
           case "html" -> SyntaxConstants.SYNTAX_STYLE_HTML;
-          case "css" -> SyntaxConstants.SYNTAX_STYLE_CSS;
+          case "css", "uss" -> SyntaxConstants.SYNTAX_STYLE_CSS;
           case "sql" -> SyntaxConstants.SYNTAX_STYLE_SQL;
           case "sh" -> SyntaxConstants.SYNTAX_STYLE_UNIX_SHELL;
           case "shader" -> SyntaxConstants.SYNTAX_STYLE_CPLUSPLUS;
