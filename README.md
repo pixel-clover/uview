@@ -19,16 +19,42 @@ A cross-platform tool for viewing and modifying Unity package files
 
 ---
 
-UView is a Java application for viewing and working with Unity package files without using the Unity Editor.
-It allows you to view, extract, and modify the contents of `.unitypackage` files without needing to import them into a Unity project first.
+UView is a lightweight Java application that lets you view, extract, and modify the contents of `unitypackage` files without importing them
+into Unity Editor.
+
+In many situations, users just want to check what's inside a Unity package, grab a few assets, or make small changes without
+launching the Unity Editor that could be slow and somewhat cumbersome.
+UView helps them do just that by providing a simple graphical interface to quickly browse and edit contents of Unity packages.
 
 ### Features
 
-- Runs on Windows, macOS, Linux, or any platform that supports Java
-- Allows you to view the contents of `.unitypackage` files and extract specific assets
-- Allows you to view and edit the assets, including C# scripts, textures, and prefabs
-- Supports editing `.meta` files associated with the assets in the package
+- Runs on Windows, macOS, Linux, or any other platform that supports Java
+- Allows users to view the contents of `unitypackage` files and extract specific assets
+- Allows users to view and edit the assets, including C# scripts, shaders, and prefabs
+- Supports editing `meta` files associated with the assets
 - Supports modifying package contents, including adding or removing assets
+
+> [!IMPORTANT]
+> This project is still in early stages of development and may be buggy and not support all Unity package features.
+> Please use the [Issues Page](https://github.com/pixel-clover/uview/issues) to report bugs or request features.
+
+---
+
+### Getting Started
+
+To run UView, you need to have Java 17 or later installed on your system.
+If you don't have Java installed, you can download it from the [Adoptium](https://adoptium.net/) website or use your system's package
+manager.
+
+Assuming you have Java installed, download the latest JAR release of UView from the
+[Releases Page](https://github.com/pixel-clover/uview/releases).
+After downloading, you can start UView from your terminal or console using the following command:
+
+```bash
+java -jar uview-<version>.jar
+````
+
+Replace `<version>` with the version you downloaded.
 
 ### Screenshots
 
@@ -48,22 +74,6 @@ It allows you to view, extract, and modify the contents of `.unitypackage` files
 
 ---
 
-### Getting Started
-
-To run UView, you need to have Java 17 or later installed on your system.
-You can download Java from the [Adoptium](https://adoptium.net/) website.
-
-Download the latest JAR release of UView from the [Releases Page](https://github.com/pixel-clover/uview/releases).
-After downloading, you can run UView from your terminal or console using the following command:
-
-```bash
-java -jar uview-<version>.jar
-````
-
-Replace `<version>` with the version you downloaded.
-
----
-
 ### Contributing
 
 Contributions are welcome!
@@ -73,14 +83,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this 
 
 UView is built using these amazing open-source libraries:
 
-- [FlatLaf](https://www.formdev.com/flatlaf/) for the modern look and feel.
+- [FlatLaf](https://www.formdev.com/flatlaf/) for the nice and modern UI.
 - [RSyntaxTextArea](https://bobbylight.github.io/RSyntaxTextArea/) for syntax highlighting.
-- [Apache Commons Compress](https://commons.apache.org/proper/commons-compress/) for archive handling.
-
-### Logo
+- [Apache Commons Compress](https://commons.apache.org/proper/commons-compress/) for handling archive files.
 
 Box logo is from [SVG Repo](https://www.svgrepo.com/svg/366323/package-inspect).
 
 ### License
 
-UView is available under the Apache License, Version 2.0 ([LICENSE](https://www.google.com/search?q=LICENSE)).
+UView is available under the Apache License, Version 2.0 ([LICENSE](LICENSE)).
