@@ -19,18 +19,33 @@ A cross platform tool to view and modify `.unitypackage` files without Unity
 
 ---
 
-UView is an application for viewing and working with Unity package files without using the Unity Editor.
+UView is a Java application for viewing and working with Unity package files without using the Unity Editor.
 It allows you to view, extract, and modify contents of `.unitypackage` files without needing to import them into a Unity project first.
 
-## Features
+### Features
 
 - Runs everywhere Java is supported (Windows, macOS, Linux)
 - Let you, vies, extract, and modify Unity package files
 
-## Contributing
+### Getting Started
+
+To run UView, you need to have Java 17 or later installed on your system.
+Typically, you can use your system's package manager to install Java, or you can download it from the [Adoptium](https://adoptium.net/)
+website.
+
+You can download the latest JAR release of UView from the [releases page](https://github.com/pixel-clover/uview/releases).
+After downloading, you can run UView using the following command:
+
+```bash
+java -jar uview-<version>.jar
+```
+
+Replace `<version>` with the actual version number of the JAR file you downloaded.
+
+### Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md) for details on how to make contributions to this project.
 
-## License
+### License
 
 UView is available under Apache License, Version 2.0 ([LICENSE](LICENSE)).
