@@ -1,13 +1,27 @@
 package com.uview.gui;
 
+import com.uview.core.PackageManager;
 import com.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 public class AssetViewerFrame extends JFrame {
 
@@ -39,7 +53,14 @@ public class AssetViewerFrame extends JFrame {
   private static final Set<String> MEDIA_EXTENSIONS = Set.of("mp4", "mov", "wav", "mp3", "ogg");
   private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("#,##0.0 KB");
 
-  public AssetViewerFrame(JFrame owner, UnityAsset asset) {
+  private final PackageManager packageManager;
+  private final Runnable onSaveCallback;
+
+  public AssetViewerFrame(
+      JFrame owner, UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
+    this.packageManager = packageManager;
+    this.onSaveCallback = onSaveCallback;
+
     setTitle("Asset Viewer - " + asset.assetPath());
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
     setSize(900, 700);
@@ -95,7 +116,7 @@ public class AssetViewerFrame extends JFrame {
     String extension = getFileExtension(asset.assetPath());
 
     if (TEXT_EXTENSIONS.contains(extension)) {
-      return new SyntaxTextPanel(asset);
+      return createTextEditorPanel(asset);
     }
 
     JPanel panel = new JPanel(new BorderLayout());
@@ -113,6 +134,41 @@ public class AssetViewerFrame extends JFrame {
     }
 
     return panel;
+  }
+
+  private JPanel createTextEditorPanel(UnityAsset asset) {
+    JPanel editorPanel = new JPanel(new BorderLayout(0, 5));
+
+    JButton saveButton = new JButton("Save");
+    saveButton.setEnabled(false);
+    JButton revertButton = new JButton("Revert");
+    revertButton.setEnabled(false);
+
+    SyntaxTextPanel syntaxTextPanel =
+        new SyntaxTextPanel(
+            asset,
+            isDirty -> {
+              saveButton.setEnabled(isDirty);
+              revertButton.setEnabled(isDirty);
+            });
+
+    saveButton.addActionListener(
+        e -> {
+          byte[] newContent = syntaxTextPanel.getText().getBytes(StandardCharsets.UTF_8);
+          packageManager.updateAssetContent(asset.assetPath(), newContent);
+          onSaveCallback.run();
+        });
+
+    revertButton.addActionListener(e -> syntaxTextPanel.revert());
+
+    JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+    buttonPanel.add(revertButton);
+    buttonPanel.add(saveButton);
+
+    editorPanel.add(syntaxTextPanel, BorderLayout.CENTER);
+    editorPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+    return editorPanel;
   }
 
   private void handleMediaAsset(UnityAsset asset) {

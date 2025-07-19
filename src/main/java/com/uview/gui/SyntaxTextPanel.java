@@ -1,9 +1,12 @@
 package com.uview.gui;
 
 import com.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
 import java.nio.charset.StandardCharsets;
-import javax.swing.*;
+import java.util.function.Consumer;
+import javax.swing.JPanel;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -11,13 +14,19 @@ import org.fife.ui.rtextarea.RTextScrollPane;
 
 public class SyntaxTextPanel extends JPanel {
 
-  public SyntaxTextPanel(UnityAsset asset) {
+  private final RSyntaxTextArea textArea;
+  private final String initialContent;
+  private boolean isDirty = false;
+
+  public SyntaxTextPanel(UnityAsset asset, Consumer<Boolean> onDirtyStateChange) {
     super(new BorderLayout());
 
-    RSyntaxTextArea textArea = new RSyntaxTextArea();
-    textArea.setEditable(false);
+    textArea = new RSyntaxTextArea();
+    textArea.setEditable(true);
+
     assert asset.content() != null;
-    textArea.setText(new String(asset.content(), StandardCharsets.UTF_8));
+    initialContent = new String(asset.content(), StandardCharsets.UTF_8);
+    textArea.setText(initialContent);
     textArea.setCaretPosition(0); // Scroll to the top
 
     setSyntaxStyle(textArea, getFileExtension(asset.assetPath()));
@@ -31,8 +40,44 @@ public class SyntaxTextPanel extends JPanel {
       // Fallback to default theme if there's an issue
     }
 
+    textArea
+        .getDocument()
+        .addDocumentListener(
+            new DocumentListener() {
+              @Override
+              public void insertUpdate(DocumentEvent e) {
+                updateDirtyState();
+              }
+
+              @Override
+              public void removeUpdate(DocumentEvent e) {
+                updateDirtyState();
+              }
+
+              @Override
+              public void changedUpdate(DocumentEvent e) {
+                updateDirtyState();
+              }
+
+              private void updateDirtyState() {
+                boolean wasDirty = isDirty;
+                isDirty = !textArea.getText().equals(initialContent);
+                if (isDirty != wasDirty) {
+                  onDirtyStateChange.accept(isDirty);
+                }
+              }
+            });
+
     RTextScrollPane scrollPane = new RTextScrollPane(textArea);
     add(scrollPane, BorderLayout.CENTER);
+  }
+
+  public String getText() {
+    return textArea.getText();
+  }
+
+  public void revert() {
+    textArea.setText(initialContent);
   }
 
   private void setSyntaxStyle(RSyntaxTextArea textArea, String extension) {

@@ -83,6 +83,46 @@ public class PackageManager {
     LOGGER.info("Staged asset {} for addition", assetPath);
   }
 
+  public void updateAssetContent(String assetPath, byte[] newContent) {
+    UnityAsset oldAsset = activePackage.getAssetByPath(assetPath);
+    if (oldAsset == null) {
+      LOGGER.warn("Attempted to update content for non-existent asset: {}", assetPath);
+      return;
+    }
+    UnityAsset updatedAsset =
+        new UnityAsset(
+            oldAsset.guid(),
+            oldAsset.assetPath(),
+            newContent,
+            oldAsset.metaContent(),
+            oldAsset.previewContent());
+    activePackage.addAsset(updatedAsset);
+    isModified = true;
+    LOGGER.info("Updated content for asset {}", assetPath);
+  }
+
+  public void updateAssetMeta(String assetPath, byte[] newMetaContent) {
+    UnityAsset oldAsset = activePackage.getAssetByPath(assetPath);
+
+    if (oldAsset == null) {
+      LOGGER.warn("Attempted to update meta for non-existent asset: {}", assetPath);
+      return;
+    }
+
+    // Create a new asset record with the updated meta content
+    UnityAsset updatedAsset =
+        new UnityAsset(
+            oldAsset.guid(),
+            oldAsset.assetPath(),
+            oldAsset.content(),
+            newMetaContent,
+            oldAsset.previewContent());
+
+    activePackage.addAsset(updatedAsset); // Overwrites the old asset due to same GUID
+    isModified = true;
+    LOGGER.info("Updated metadata for asset {}", assetPath);
+  }
+
   public void removeAsset(String assetPath) {
     activePackage.removeAssetByPath(assetPath);
     isModified = true;

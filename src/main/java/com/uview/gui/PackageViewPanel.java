@@ -6,14 +6,30 @@ import com.uview.core.SettingsManager;
 import com.uview.gui.tree.TreeEntry;
 import com.uview.io.PackageIO;
 import com.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -28,8 +44,8 @@ public class PackageViewPanel extends JPanel {
   private final DefaultTreeModel treeModel;
   private final JFrame owner;
   private final Timer searchDebounceTimer;
-  private final JTextField searchField;
   private File packageFile;
+  private final JTextField searchField;
 
   public PackageViewPanel(JFrame owner, File packageFile, SettingsManager settingsManager) {
     super(new BorderLayout());
@@ -81,9 +97,14 @@ public class PackageViewPanel extends JPanel {
             if (SwingUtilities.isRightMouseButton(e)) {
               // Only show menu if we are not on an info message node
               TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
-              if (path != null && tree.getModel().getChildCount(path.getLastPathComponent()) > 0) {
-                tree.setSelectionPath(path);
+              if (path != null) {
+                // If clicking on empty space but a node is selected, keep selection.
+                // If clicking on a different node, select it.
+                if (tree.getRowForPath(path) != -1 && !tree.isPathSelected(path)) {
+                  tree.setSelectionPath(path);
+                }
               }
+
               if (tree.getSelectionPath() != null) {
                 createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
               }
@@ -131,6 +152,10 @@ public class PackageViewPanel extends JPanel {
     viewMenuItem.addActionListener(e -> handleDoubleClick());
     popup.add(viewMenuItem);
 
+    JMenuItem editMetaMenuItem = new JMenuItem("Edit Meta File");
+    editMetaMenuItem.addActionListener(e -> editSelectedMetaFile());
+    popup.add(editMetaMenuItem);
+
     popup.add(new JSeparator());
 
     JMenuItem addMenuItem = new JMenuItem("Add File...");
@@ -152,9 +177,12 @@ public class PackageViewPanel extends JPanel {
     if (isNodeSelected) {
       DefaultMutableTreeNode selectedNode =
           (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
-      viewMenuItem.setEnabled(selectedNode.getUserObject() instanceof TreeEntry.AssetEntry);
+      boolean isAsset = selectedNode.getUserObject() instanceof TreeEntry.AssetEntry;
+      viewMenuItem.setEnabled(isAsset);
+      editMetaMenuItem.setEnabled(isAsset); // Enable for any asset
     } else {
       viewMenuItem.setEnabled(false);
+      editMetaMenuItem.setEnabled(false);
     }
 
     return popup;
@@ -315,8 +343,38 @@ public class PackageViewPanel extends JPanel {
         (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
     Object userObject = selectedNode.getUserObject();
     if (userObject instanceof TreeEntry.AssetEntry entry) {
-      AssetViewerFrame viewer = new AssetViewerFrame(owner, entry.asset());
+      Runnable onSaveCallback =
+          () -> {
+            if (owner instanceof MainWindow) {
+              ((MainWindow) owner).updateState();
+            }
+          };
+      AssetViewerFrame viewer =
+          new AssetViewerFrame((JFrame) owner, entry.asset(), packageManager, onSaveCallback);
       viewer.setVisible(true);
+    }
+  }
+
+  private void editSelectedMetaFile() {
+    TreePath selectionPath = tree.getSelectionPath();
+    if (selectionPath == null) {
+      return;
+    }
+
+    DefaultMutableTreeNode selectedNode =
+        (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
+    if (selectedNode.getUserObject() instanceof TreeEntry.AssetEntry entry) {
+      // This callback will ask the main window to update its state (e.g., enable Save menu item)
+      Runnable onSaveCallback =
+          () -> {
+            if (owner instanceof MainWindow) {
+              ((MainWindow) owner).updateState();
+            }
+          };
+
+      MetaEditorFrame editor =
+          new MetaEditorFrame((JFrame) owner, entry.asset(), packageManager, onSaveCallback);
+      editor.setVisible(true);
     }
   }
 
