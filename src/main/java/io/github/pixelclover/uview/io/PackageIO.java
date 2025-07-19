@@ -18,7 +18,8 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 public class PackageIO {
 
   /**
-   * Loads a {@link UnityPackage} from a .unitypackage file.
+   * Loads a {@link UnityPackage} from a .unitypackage file. It reads the gzipped tar archive,
+   * extracts the raw data for each asset, and populates a new UnityPackage object.
    *
    * @param packageFile The .unitypackage file to load.
    * @return The loaded {@link UnityPackage} object.
@@ -38,7 +39,8 @@ public class PackageIO {
           continue;
         }
 
-        // FIX: Clean the raw entry name from the tar header itself to remove any padding.
+        // The raw entry name from the tar header can have trailing null characters.
+        // Clean it to get a proper path.
         String entryName = entry.getName();
         int nullIndex = entryName.indexOf(0);
         if (nullIndex != -1) {
@@ -64,7 +66,8 @@ public class PackageIO {
   }
 
   /**
-   * Saves a {@link UnityPackage} to a .unitypackage file.
+   * Saves a {@link UnityPackage} to a .unitypackage file. It creates a temporary gzipped tar
+   * archive, writes all assets to it, and then replaces the destination file.
    *
    * @param unityPackage The {@link UnityPackage} to save.
    * @param packageFile The destination .unitypackage file.

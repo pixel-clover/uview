@@ -20,6 +20,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 
+/**
+ * A panel that displays the contents of a single Unity package in a JTree. It includes a search bar
+ * for filtering assets and a context menu for asset operations.
+ */
 public class PackageViewPanel extends JPanel {
 
   private final PackageManager packageManager;
@@ -31,6 +35,13 @@ public class PackageViewPanel extends JPanel {
   private final JTextField searchField;
   private File packageFile;
 
+  /**
+   * Constructs a PackageViewPanel.
+   *
+   * @param owner The parent frame, typically the MainWindow.
+   * @param packageFile The .unitypackage file to display, or null for a new package.
+   * @param settingsManager The application's settings manager.
+   */
   public PackageViewPanel(JFrame owner, File packageFile, SettingsManager settingsManager) {
     super(new BorderLayout());
     this.owner = owner;
@@ -182,6 +193,11 @@ public class PackageViewPanel extends JPanel {
     return popup;
   }
 
+  /**
+   * Asynchronously loads the package file and populates the tree.
+   *
+   * @param onDone A callback to execute after loading is complete (successfully or not).
+   */
   public void loadPackage(Runnable onDone) {
     if (packageFile == null) { // New package
       packageManager.createNew();
@@ -343,7 +359,7 @@ public class PackageViewPanel extends JPanel {
             // The owner is always the MainWindow, so this cast is safe.
             ((MainWindow) owner).updateState();
           };
-      // --- MODIFIED: Call the manager method on MainWindow ---
+      // Delegate window creation to MainWindow to manage instances.
       ((MainWindow) owner).showAssetViewer(entry.asset(), packageManager, onSaveCallback);
     }
   }
@@ -364,28 +380,49 @@ public class PackageViewPanel extends JPanel {
             ((MainWindow) owner).updateState();
           };
 
-      // --- MODIFIED: Call the manager method on MainWindow ---
+      // Delegate window creation to MainWindow to manage instances.
       ((MainWindow) owner).showMetaEditor(entry.asset(), packageManager, onSaveCallback);
     }
   }
 
+  /** Refreshes the tree view to reflect the current state of the package assets. */
   public void refreshTree() {
     // When refreshing, apply the current filter text
     filterTree();
   }
 
+  /**
+   * Gets the PackageManager associated with this panel.
+   *
+   * @return The PackageManager instance.
+   */
   public PackageManager getPackageManager() {
     return packageManager;
   }
 
+  /**
+   * Gets the file associated with this package view.
+   *
+   * @return The package file, or null if it's a new, unsaved package.
+   */
   public File getPackageFile() {
     return packageFile;
   }
 
+  /**
+   * Sets the file for this package view. This is typically called after a "Save As" operation.
+   *
+   * @param packageFile The new file for the package.
+   */
   public void setPackageFile(File packageFile) {
     this.packageFile = packageFile;
   }
 
+  /**
+   * Generates the title for this panel's tab, including a '*' if there are unsaved changes.
+   *
+   * @return The tab title string.
+   */
   public String getTabTitle() {
     String title = (packageFile != null) ? packageFile.getName() : "New Package";
     if (packageManager.isModified()) {
@@ -394,6 +431,11 @@ public class PackageViewPanel extends JPanel {
     return title;
   }
 
+  /**
+   * Gets the JTree component used by this panel.
+   *
+   * @return The JTree instance.
+   */
   public JTree getTree() {
     return tree;
   }

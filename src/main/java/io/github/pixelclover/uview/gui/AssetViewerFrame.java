@@ -13,6 +13,10 @@ import java.text.DecimalFormat;
 import java.util.Set;
 import javax.swing.*;
 
+/**
+ * A frame for viewing and potentially editing a single {@link UnityAsset}. It determines the
+ * appropriate viewer (text editor, image viewer, etc.) based on the asset's file extension.
+ */
 public class AssetViewerFrame extends JFrame {
 
   private static final Set<String> TEXT_EXTENSIONS =
@@ -52,6 +56,14 @@ public class AssetViewerFrame extends JFrame {
   private PdfViewerPanel pdfPanel;
   private AudioPlayerPanel audioPanel;
 
+  /**
+   * Constructs a new AssetViewerFrame.
+   *
+   * @param owner The parent frame.
+   * @param asset The asset to display.
+   * @param packageManager The package manager instance for handling updates.
+   * @param onSaveCallback A callback to execute when the asset's content is saved.
+   */
   public AssetViewerFrame(
       JFrame owner, UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     this.packageManager = packageManager;
@@ -76,6 +88,7 @@ public class AssetViewerFrame extends JFrame {
         new WindowAdapter() {
           @Override
           public void windowClosed(WindowEvent e) {
+            // Clean up resources used by viewers.
             if (pdfPanel != null) {
               try {
                 pdfPanel.close();

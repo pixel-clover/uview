@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * Represents the contents of a .unitypackage file. This class is a container for all the {@link
- * UnityAsset} objects within the package.
+ * UnityAsset} objects within the package, providing methods to access, add, and remove them.
  */
 public class UnityPackage {
   private static final Logger LOGGER = LogManager.getLogger(UnityPackage.class);
@@ -17,8 +17,9 @@ public class UnityPackage {
   private final Map<String, String> pathToGuid = new HashMap<>();
 
   /**
-   * Cleans the raw pathname string from a package. Some tools encode pathnames with trailing null
-   * bytes or control characters, which this method removes.
+   * Cleans the raw pathname string from a package's "pathname" file. Some versions of Unity or
+   * external tools encode pathnames with trailing control characters (like newlines) or a specific
+   * "00" suffix. This method sanitizes the path to make it usable.
    *
    * @param pathnameBytes The raw byte array for the pathname.
    * @return A clean, usable path string.
@@ -26,12 +27,13 @@ public class UnityPackage {
   private static String getString(byte[] pathnameBytes) {
     String pathname = new String(pathnameBytes, StandardCharsets.UTF_8);
 
-    // DEFINITIVE FIX: Based on the logs, we now know the exact problem.
-    // 1. Remove all control characters, which gets rid of the newline (\n).
+    // This robustly handles several observed formatting quirks:
+    // 1. Remove all control characters, which gets rid of trailing newlines (\n) or nulls (\0).
     //    This turns "File.cs\n00" into "File.cs00".
     pathname = pathname.replaceAll("\\p{Cntrl}", "");
 
-    // 2. Now that the newline is gone, check for and remove the literal "00" suffix.
+    // 2. After cleaning control chars, check for and remove a specific "00" suffix, which is a
+    //    known bug in some package creation tools.
     if (pathname.endsWith("00")) {
       pathname = pathname.substring(0, pathname.length() - 2);
     }
@@ -71,7 +73,7 @@ public class UnityPackage {
     }
   }
 
-  /** Clears all assets from the package. */
+  /** Clears all assets from the package, resetting it to an empty state. */
   public void clear() {
     assetsByGuid.clear();
     pathToGuid.clear();
@@ -80,7 +82,7 @@ public class UnityPackage {
   /**
    * Gets an unmodifiable view of the assets in this package, mapped by their GUID.
    *
-   * @return An unmodifiable map of assets.
+   * @return An unmodifiable map of GUIDs to {@link UnityAsset}s.
    */
   public Map<String, UnityAsset> getAssets() {
     return Collections.unmodifiableMap(assetsByGuid);
@@ -89,8 +91,8 @@ public class UnityPackage {
   /**
    * Retrieves an asset by its full path.
    *
-   * @param assetPath The path of the asset to retrieve.
-   * @return The {@link UnityAsset} if found, otherwise null.
+   * @param assetPath The path of the asset to retrieve (e.g., "Assets/Scripts/Player.cs").
+   * @return The {@link UnityAsset} if found, otherwise {@code null}.
    */
   public UnityAsset getAssetByPath(String assetPath) {
     String guid = pathToGuid.get(assetPath);
@@ -102,9 +104,9 @@ public class UnityPackage {
 
   /**
    * Adds an asset to the package. If an asset with the same GUID already exists, it will be
-   * replaced.
+   * replaced, effectively updating the asset.
    *
-   * @param asset The {@link UnityAsset} to add.
+   * @param asset The {@link UnityAsset} to add or update.
    */
   public void addAsset(UnityAsset asset) {
     assetsByGuid.put(asset.guid(), asset);

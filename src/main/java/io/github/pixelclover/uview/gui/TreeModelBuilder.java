@@ -8,10 +8,21 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.swing.tree.DefaultMutableTreeNode;
 
+/**
+ * A utility class to build a {@link DefaultMutableTreeNode} structure from a collection of {@link
+ * UnityAsset}s.
+ */
 public final class TreeModelBuilder {
 
   private TreeModelBuilder() {}
 
+  /**
+   * Builds a tree model structure from a flat collection of assets. It constructs the necessary
+   * parent directory nodes to create a proper file system hierarchy.
+   *
+   * @param assets The collection of assets to include in the tree.
+   * @return The root node of the constructed tree.
+   */
   public static DefaultMutableTreeNode build(Collection<UnityAsset> assets) {
     // A temporary root to build the full package hierarchy under.
     DefaultMutableTreeNode masterRoot = new DefaultMutableTreeNode("master-root");

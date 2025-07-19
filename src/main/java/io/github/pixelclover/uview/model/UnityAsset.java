@@ -4,13 +4,15 @@ import java.util.Arrays;
 import java.util.Objects;
 
 /**
- * Represents a single asset within a Unity package. This record is immutable. The byte arrays for
- * content are defensively copied upon construction and retrieval to maintain immutability.
+ * Represents a single asset within a Unity package. An asset can be a file (like a script or
+ * texture) or a directory. This record is immutable; its byte array fields are defensively copied
+ * to prevent external modification.
  *
- * @param guid The unique identifier for the asset.
+ * @param guid The unique identifier for the asset (e.g., "e8c5a5e3a3e2c4b4f8d9a8c7b6a5e4d3").
  * @param assetPath The full path of the asset within the project (e.g.,
  *     "Assets/Scripts/Player.cs").
- * @param content The binary content of the asset file. Null if the asset is a directory.
+ * @param content The binary content of the asset file. This is {@code null} if the asset is a
+ *     directory.
  * @param metaContent The binary content of the associated .meta file.
  * @param previewContent The binary content of the asset's preview image, if any.
  */
@@ -18,21 +20,23 @@ public record UnityAsset(
     String guid, String assetPath, byte[] content, byte[] metaContent, byte[] previewContent) {
 
   /**
-   * Canonical constructor that creates a deep copy of the byte array parameters.
+   * Canonical constructor for UnityAsset. It creates deep copies of the byte array parameters to
+   * maintain immutability.
    *
    * @throws NullPointerException if guid or assetPath are null.
    */
   public UnityAsset {
     Objects.requireNonNull(guid);
     Objects.requireNonNull(assetPath);
-    content = content == null ? null : Arrays.copyOf(content, content.length);
-    metaContent = metaContent == null ? null : Arrays.copyOf(metaContent, metaContent.length);
+    content = (content != null) ? Arrays.copyOf(content, content.length) : null;
+    metaContent = (metaContent != null) ? Arrays.copyOf(metaContent, metaContent.length) : null;
     previewContent =
-        previewContent == null ? null : Arrays.copyOf(previewContent, previewContent.length);
+        (previewContent != null) ? Arrays.copyOf(previewContent, previewContent.length) : null;
   }
 
   /**
-   * Creates a new {@link UnityAsset} with a randomly generated GUID.
+   * Creates a new {@link UnityAsset} with a randomly generated GUID. This is useful when adding a
+   * new file to the package.
    *
    * @param assetPath The asset's path.
    * @param content The asset's content.
@@ -49,38 +53,38 @@ public record UnityAsset(
   /**
    * Returns a defensive copy of the asset's content.
    *
-   * @return A copy of the content byte array, or null if it's a directory.
+   * @return A copy of the content byte array, or {@code null} if it's a directory.
    */
   @Override
   public byte[] content() {
-    return content == null ? null : Arrays.copyOf(content, content.length);
+    return (content != null) ? Arrays.copyOf(content, content.length) : null;
   }
 
   /**
    * Returns a defensive copy of the asset's meta content.
    *
-   * @return A copy of the meta content byte array, or null if it doesn't exist.
+   * @return A copy of the meta content byte array, or {@code null} if it doesn't exist.
    */
   @Override
   public byte[] metaContent() {
-    return metaContent == null ? null : Arrays.copyOf(metaContent, metaContent.length);
+    return (metaContent != null) ? Arrays.copyOf(metaContent, metaContent.length) : null;
   }
 
   /**
    * Returns a defensive copy of the asset's preview content.
    *
-   * @return A copy of the preview content byte array, or null if it doesn't exist.
+   * @return A copy of the preview content byte array, or {@code null} if it doesn't exist.
    */
   @Override
   public byte[] previewContent() {
-    return previewContent == null ? null : Arrays.copyOf(previewContent, previewContent.length);
+    return (previewContent != null) ? Arrays.copyOf(previewContent, previewContent.length) : null;
   }
 
   /**
-   * Checks if this asset represents a directory. In a unitypackage, directories are represented as
-   * assets that have no "asset" file entry, meaning their content is null.
+   * Checks if this asset represents a directory. In a .unitypackage, directories are typically
+   * represented as assets that have a {@code null} content field.
    *
-   * @return true if the asset's content is null, false otherwise.
+   * @return {@code true} if the asset's content is null, {@code false} otherwise.
    */
   public boolean isDirectory() {
     // The most reliable way to determine if an asset is a directory is by checking if it
@@ -90,13 +94,13 @@ public record UnityAsset(
 
   /**
    * Compares this asset to another object for equality. Two assets are considered equal if their
-   * GUIDs are equal.
+   * GUIDs are equal, as the GUID is the asset's unique identity.
    *
    * @param o The object to compare against.
-   * @return true if the objects are both UnityAssets and have the same GUID.
+   * @return {@code true} if the objects are both UnityAssets and have the same GUID.
    */
   @Override
-  public final boolean equals(Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -113,7 +117,7 @@ public record UnityAsset(
    * @return The hash code of the GUID.
    */
   @Override
-  public final int hashCode() {
+  public int hashCode() {
     return Objects.hash(guid);
   }
 

@@ -27,6 +27,10 @@ import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.FontUIResource;
 
+/**
+ * The main window of the UView application. It manages the UI, including menus, tabs, and status
+ * bar.
+ */
 public class MainWindow extends JFrame {
 
   private final SettingsManager settingsManager = new SettingsManager();
@@ -45,6 +49,7 @@ public class MainWindow extends JFrame {
   private JLabel packageSizeLabel;
   private JLabel memoryUsageLabel;
 
+  /** Constructs the main application window. */
   public MainWindow() {
     super("UView");
     setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -251,6 +256,14 @@ public class MainWindow extends JFrame {
     return menuBar;
   }
 
+  /**
+   * Shows a viewer for the specified asset. This method manages open viewers to prevent duplicates.
+   * If a viewer for the asset is already open, it brings it to the front.
+   *
+   * @param asset The asset to view.
+   * @param packageManager The package manager instance.
+   * @param onSaveCallback A callback to run when the asset is saved in the viewer.
+   */
   public void showAssetViewer(
       UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     String assetPath = asset.assetPath();
@@ -272,6 +285,14 @@ public class MainWindow extends JFrame {
     }
   }
 
+  /**
+   * Shows a meta file editor for the specified asset. This method manages open editors to prevent
+   * duplicates. If an editor for the asset's meta file is already open, it brings it to the front.
+   *
+   * @param asset The asset whose meta file is to be edited.
+   * @param packageManager The package manager instance.
+   * @param onSaveCallback A callback to run when the meta file is saved.
+   */
   public void showMetaEditor(
       UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     String assetPath = asset.assetPath();
@@ -496,6 +517,7 @@ public class MainWindow extends JFrame {
     return true;
   }
 
+  /** Closes the currently selected package tab, prompting to save changes if necessary. */
   void closePackage() {
     if (confirmAndSaveChanges()) {
       int selectedIndex = tabbedPane.getSelectedIndex();
@@ -580,6 +602,10 @@ public class MainWindow extends JFrame {
     worker.execute();
   }
 
+  /**
+   * Updates the state of the main window's components (title, menu items, status bar) based on the
+   * currently selected tab.
+   */
   void updateState() {
     PackageViewPanel currentPanel = getCurrentPanel();
     boolean hasPanel = currentPanel != null;

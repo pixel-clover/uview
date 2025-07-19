@@ -22,6 +22,12 @@ public class PdfViewerPanel extends JPanel {
   private final JTextField pageInputField = new JTextField(4);
   private int currentPage = 0;
 
+  /**
+   * Constructs a PdfViewerPanel.
+   *
+   * @param pdfData The byte array containing the PDF data.
+   * @throws IOException If the PDF data cannot be loaded.
+   */
   public PdfViewerPanel(byte[] pdfData) throws IOException {
     super(new BorderLayout());
 

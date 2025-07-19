@@ -7,6 +7,10 @@ import javax.swing.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * A utility class for managing and caching icons used throughout the application. It loads SVG
+ * icons from resources and provides them on demand, mapping file extensions to specific icons.
+ */
 public final class IconManager {
 
   private static final Logger LOGGER = LogManager.getLogger(IconManager.class);
@@ -81,6 +85,12 @@ public final class IconManager {
     }
   }
 
+  /**
+   * Gets the appropriate icon for a given filename based on its extension.
+   *
+   * @param filename The name of the file.
+   * @return The corresponding {@link Icon}, or a default file icon if no specific icon is found.
+   */
   public static Icon getIconForFile(String filename) {
     if (filename == null || filename.isEmpty()) {
       return DEFAULT_FILE_ICON;
@@ -95,6 +105,11 @@ public final class IconManager {
     return ICON_CACHE.getOrDefault(extension, DEFAULT_FILE_ICON);
   }
 
+  /**
+   * Gets the standard icon for a folder.
+   *
+   * @return The folder {@link Icon}.
+   */
   public static Icon getFolderIcon() {
     return FOLDER_ICON;
   }

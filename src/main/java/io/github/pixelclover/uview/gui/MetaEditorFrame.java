@@ -10,6 +10,10 @@ import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
+/**
+ * A dialog for editing the YAML-based .meta file associated with a {@link UnityAsset}. It provides
+ * a syntax-highlighted text area for editing.
+ */
 public class MetaEditorFrame extends JDialog {
 
   private final RSyntaxTextArea textArea;
@@ -17,6 +21,14 @@ public class MetaEditorFrame extends JDialog {
   private final PackageManager packageManager;
   private final Runnable onSaveCallback;
 
+  /**
+   * Constructs a MetaEditorFrame.
+   *
+   * @param owner The parent frame.
+   * @param asset The asset whose meta file is to be edited.
+   * @param packageManager The package manager to handle the update.
+   * @param onSaveCallback A callback to execute after saving changes.
+   */
   public MetaEditorFrame(
       JFrame owner, UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     super(owner, "Edit Meta: " + asset.assetPath(), true);

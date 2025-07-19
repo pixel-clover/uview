@@ -7,9 +7,15 @@ import io.github.pixelclover.uview.gui.FontManager;
 import io.github.pixelclover.uview.gui.MainWindow;
 import javax.swing.*;
 
+/** The main entry point for the UView application. */
 public final class App {
   private App() {}
 
+  /**
+   * The main method that launches the application.
+   *
+   * @param args Command-line arguments (not used).
+   */
   public static void main(String[] args) {
     FlatLightLaf.setup();
     FlatInspector.install("ctrl shift alt X");

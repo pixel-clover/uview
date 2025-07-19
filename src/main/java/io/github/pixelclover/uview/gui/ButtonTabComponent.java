@@ -8,10 +8,16 @@ import java.awt.event.MouseEvent;
 import javax.swing.*;
 import javax.swing.plaf.basic.BasicButtonUI;
 
+/** A component to be used as a tab in a JTabbedPane. It contains a label and a close button. */
 public class ButtonTabComponent extends JPanel {
 
   private final JTabbedPane pane;
 
+  /**
+   * Constructs a ButtonTabComponent.
+   *
+   * @param pane The JTabbedPane this component belongs to.
+   */
   public ButtonTabComponent(final JTabbedPane pane) {
     super(new FlowLayout(FlowLayout.LEFT, 0, 0));
     if (pane == null) {
@@ -66,8 +72,7 @@ public class ButtonTabComponent extends JPanel {
       int i = pane.indexOfTabComponent(ButtonTabComponent.this);
       if (i != -1) {
         Component topLevelAncestor = pane.getTopLevelAncestor();
-        if (topLevelAncestor instanceof MainWindow) {
-          MainWindow mainWindow = (MainWindow) topLevelAncestor;
+        if (topLevelAncestor instanceof MainWindow mainWindow) {
           pane.setSelectedIndex(i);
           mainWindow.closePackage();
         } else {

@@ -10,6 +10,10 @@ import javax.swing.event.DocumentListener;
 import org.fife.ui.rsyntaxtextarea.*;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
+/**
+ * A panel that displays asset content in a syntax-highlighted text editor. It also manages a
+ * "dirty" state to track unsaved changes.
+ */
 public class SyntaxTextPanel extends JPanel {
 
   private final RSyntaxTextArea textArea;
@@ -17,6 +21,13 @@ public class SyntaxTextPanel extends JPanel {
   private DocumentListener dirtyStateListener;
   private String savedContent;
 
+  /**
+   * Constructs a SyntaxTextPanel.
+   *
+   * @param asset The asset whose content will be displayed.
+   * @param onDirtyStateChange A consumer that will be notified when the text is modified, passing
+   *     true if dirty, false if clean.
+   */
   public SyntaxTextPanel(UnityAsset asset, Consumer<Boolean> onDirtyStateChange) {
     super(new BorderLayout());
     this.onDirtyStateChange = onDirtyStateChange;
@@ -90,10 +101,16 @@ public class SyntaxTextPanel extends JPanel {
     }
   }
 
+  /**
+   * Gets the current text from the editor.
+   *
+   * @return The text content.
+   */
   public String getText() {
     return textArea.getText();
   }
 
+  /** Marks the current content as saved, resetting the dirty state. */
   public void markAsSaved() {
     this.savedContent = textArea.getText();
     textArea.discardAllEdits();
@@ -101,6 +118,7 @@ public class SyntaxTextPanel extends JPanel {
     addDirtyStateListener();
   }
 
+  /** Reverts any changes made since the last save. */
   public void revert() {
     textArea.getDocument().removeDocumentListener(dirtyStateListener);
     textArea.setText(this.savedContent);

@@ -6,6 +6,10 @@ import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 
+/**
+ * A custom tree cell renderer for the package file tree. It displays appropriate icons for
+ * different file and directory types.
+ */
 public class FileTypeTreeCellRenderer extends DefaultTreeCellRenderer {
 
   @Override

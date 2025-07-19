@@ -19,7 +19,8 @@ A cross-platform tool for viewing and modifying Unity package files
 
 ---
 
-UView is a lightweight Java application that lets you view, extract, and modify the contents of `unitypackage` files without importing them
+UView is a lightweight Java application that lets you view, extract, and modify the contents of `*.unitypackage` files without importing
+them
 into Unity Editor.
 
 In many situations, users just want to check what's inside a Unity package, grab a few assets, or make small changes without
@@ -28,11 +29,12 @@ UView helps them do just that by providing a simple graphical interface to quick
 
 ### Features
 
-- Runs on Windows, macOS, Linux, or any other platform that supports Java
-- Allows users to view the contents of `unitypackage` files and extract specific assets
-- Allows users to view and edit the assets, including C# scripts, shaders, and prefabs
-- Supports editing `meta` files associated with the assets
-- Supports modifying package contents, including adding or removing assets
+* Works on Windows, macOS, Linux, or any system with Java 21 or later installed
+* Supports viewing the contents of `*.unitypackage` files
+* Supports extracting specific assets without Unity
+* Supports viewing and editing assets such as C# scripts, shaders, and prefabs
+* Supports viewing and editing `*.meta` files associated with assets
+* Supports adding or removing assets from the package
 
 > [!IMPORTANT]
 > This project is still in early stages of development and may be buggy and not support all Unity package features.
@@ -42,7 +44,7 @@ UView helps them do just that by providing a simple graphical interface to quick
 
 ### Getting Started
 
-To run UView, you need to have Java 17 or later installed on your system.
+To run UView, you need to have Java 21 or later installed on your system.
 If you don't have Java installed, you can download it from the [Adoptium](https://adoptium.net/) website or use your system's package
 manager.
 
