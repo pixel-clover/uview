@@ -3,7 +3,7 @@ name = "uview"
 version = "0.1.0"
 description = "Python environment for UView"
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Hassan Abedi", email = "hassan.abedi.t@gmail.com" }
 ]

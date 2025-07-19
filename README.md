@@ -33,4 +33,4 @@ See [CONTRIBUTING](CONTRIBUTING.md) for details on how to make contributions to 
 
 ## License
 
-UView is available under MIT License ([LICENSE](LICENSE)).
+UView is available under Apache License, Version 2.0 ([LICENSE](LICENSE)).
