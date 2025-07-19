@@ -24,12 +24,29 @@ It allows you to view, extract, and modify the contents of `.unitypackage` files
 
 ### Features
 
-- **Cross-Platform**: Runs on Windows, macOS, and Linux.
-- **View & Extract**: Browse the file hierarchy of a package and extract files and folders.
-- **Asset Editing**: Edit text-based assets like C# scripts, shaders, and JSON files with syntax highlighting.
-- **Meta File Editing**: View and edit the `.meta` files for any asset, including folders.
-- **Package Modification**: Add new files to or remove existing files from the package.
-- **Modern UI**: A clean, tabbed interface for managing multiple packages.
+- Runs on Windows, macOS, Linux, or any platform that supports Java
+- Allows you to view the contents of `.unitypackage` files and extract specific assets
+- Allows you to view and edit the assets, including C# scripts, textures, and prefabs
+- Supports editing `.meta` files associated with the assets in the package
+- Supports modifying package contents, including adding or removing assets
+
+### Screenshots
+
+<div align="center">
+  <img alt="Main Window" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
+</div>
+
+<details>
+<summary>Show more screenshots</summary>
+
+<div align="center">
+  <img alt="Chat View" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
+  <img alt="Chat View" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
+</div>
+
+</details>
+
+---
 
 ### Getting Started
 
