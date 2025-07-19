@@ -1,5 +1,7 @@
 package io.github.pixelclover.uview.gui;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import io.github.pixelclover.uview.App;
 import io.github.pixelclover.uview.core.PackageManager;
@@ -20,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,12 +42,15 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.TransferHandler;
+import javax.swing.UIManager;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.FontUIResource;
 
 /** The main application window for UView. */
 public class MainWindow extends JFrame {
@@ -52,7 +58,6 @@ public class MainWindow extends JFrame {
   private final SettingsManager settingsManager = new SettingsManager();
   private final JTabbedPane tabbedPane;
 
-  // --- ADDED: Maps to track open editor/viewer frames ---
   private final Map<String, JFrame> openAssetViewers = new HashMap<>();
   private final Map<String, JDialog> openMetaEditors = new HashMap<>();
 
@@ -66,12 +71,14 @@ public class MainWindow extends JFrame {
   private JLabel packageSizeLabel;
   private JLabel memoryUsageLabel;
 
-  /** Constructs the main window and initializes its components. */
   public MainWindow() {
     super("UView");
-    setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // We will handle the close operation
+    setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
     setSize(800, 600);
     setLocationRelativeTo(null);
+
+    // --- MODIFIED: Load and apply settings on startup ---
+    loadAndApplySettings();
 
     addWindowListener(
         new WindowAdapter() {
@@ -93,15 +100,161 @@ public class MainWindow extends JFrame {
     updateState();
   }
 
-  // --- ADDED: Method to show the asset viewer ---
-  /**
-   * Shows the asset viewer for a given asset. If a viewer for this asset is already open, it brings
-   * that window to the front. Otherwise, it creates a new viewer.
-   *
-   * @param asset The asset to view.
-   * @param packageManager The package manager instance.
-   * @param onSaveCallback A callback to run when the asset is modified.
-   */
+  // --- ADDED: Load settings from SettingsManager and apply them ---
+  private void loadAndApplySettings() {
+    applyTheme(settingsManager.isDarkTheme());
+    setGlobalFontSize(settingsManager.getFontSize(), false); // Don't save on initial load
+  }
+
+  // --- ADDED: A dedicated method to apply a theme ---
+  private void applyTheme(boolean useDarkTheme) {
+    try {
+      if (useDarkTheme) {
+        UIManager.setLookAndFeel(new FlatDarkLaf());
+      } else {
+        UIManager.setLookAndFeel(new FlatLightLaf());
+      }
+      SwingUtilities.updateComponentTreeUI(this);
+    } catch (Exception ex) {
+      JOptionPane.showMessageDialog(
+          this, "Failed to set theme: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+    }
+  }
+
+  // --- MODIFIED: Logic to toggle the theme and save the setting ---
+  private void toggleTheme() {
+    boolean newIsDark = !settingsManager.isDarkTheme();
+    settingsManager.setDarkTheme(newIsDark);
+    applyTheme(newIsDark);
+  }
+
+  // --- MODIFIED: Renamed and updated to save the new font size ---
+  private void setGlobalFontSize(int newSize, boolean saveSetting) {
+    if (newSize < 10 || newSize > 24) {
+      return; // Set reasonable size limits
+    }
+
+    FontUIResource newFont =
+        new FontUIResource(UIManager.getFont("Label.font").deriveFont((float) newSize));
+    Enumeration<Object> keys = UIManager.getDefaults().keys();
+    while (keys.hasMoreElements()) {
+      Object key = keys.nextElement();
+      Object value = UIManager.get(key);
+      if (value instanceof FontUIResource) {
+        UIManager.put(key, newFont);
+      }
+    }
+    SwingUtilities.updateComponentTreeUI(this);
+
+    if (saveSetting) {
+      settingsManager.setFontSize(newSize);
+    }
+  }
+
+  // --- MODIFIED: Incremental change now calls the main font size setter ---
+  private void changeGlobalFontSize(int amount) {
+    int currentSize = UIManager.getFont("Label.font").getSize();
+    setGlobalFontSize(currentSize + amount, true);
+  }
+
+  private JMenuBar createMenuBar() {
+    JMenuBar menuBar = new JMenuBar();
+
+    JMenu fileMenu = new JMenu("File");
+    // ... (File menu items are unchanged)
+    menuBar.add(fileMenu);
+
+    JMenuItem newMenuItem = new JMenuItem("New Package");
+    newMenuItem.addActionListener(e -> newPackage());
+    fileMenu.add(newMenuItem);
+
+    JMenuItem openMenuItem = new JMenuItem("Open...");
+    openMenuItem.addActionListener(e -> openFile());
+    fileMenu.add(openMenuItem);
+
+    openRecentMenu = new JMenu("Open Recent");
+    fileMenu.add(openRecentMenu);
+
+    closeMenuItem = new JMenuItem("Close");
+    closeMenuItem.addActionListener(e -> closePackage());
+    fileMenu.add(closeMenuItem);
+
+    fileMenu.addMenuListener(
+        new MenuListener() {
+          public void menuSelected(MenuEvent e) {
+            populateRecentFilesMenu();
+          }
+
+          public void menuDeselected(MenuEvent e) {}
+
+          public void menuCanceled(MenuEvent e) {}
+        });
+
+    fileMenu.add(new JSeparator());
+
+    saveMenuItem = new JMenuItem("Save");
+    saveMenuItem.addActionListener(e -> saveFile());
+    fileMenu.add(saveMenuItem);
+
+    saveAsMenuItem = new JMenuItem("Save As...");
+    saveAsMenuItem.addActionListener(e -> saveFileAs());
+    fileMenu.add(saveAsMenuItem);
+
+    fileMenu.add(new JSeparator());
+
+    extractAllMenuItem = new JMenuItem("Extract All...");
+    extractAllMenuItem.addActionListener(e -> extractAll());
+    fileMenu.add(extractAllMenuItem);
+
+    fileMenu.add(new JSeparator());
+
+    JMenuItem exitMenuItem = new JMenuItem("Exit");
+    exitMenuItem.addActionListener(e -> handleExit());
+    fileMenu.add(exitMenuItem);
+
+    JMenu settingsMenu = new JMenu("Settings");
+    menuBar.add(settingsMenu);
+
+    JMenuItem toggleThemeItem = new JMenuItem("Toggle Light/Dark Theme");
+    toggleThemeItem.addActionListener(e -> toggleTheme());
+    settingsMenu.add(toggleThemeItem);
+
+    settingsMenu.addSeparator();
+
+    JMenuItem increaseFontItem = new JMenuItem("Increase Font Size");
+    increaseFontItem.addActionListener(e -> changeGlobalFontSize(1));
+    settingsMenu.add(increaseFontItem);
+
+    JMenuItem decreaseFontItem = new JMenuItem("Decrease Font Size");
+    decreaseFontItem.addActionListener(e -> changeGlobalFontSize(-1));
+    settingsMenu.add(decreaseFontItem);
+
+    // --- ADDED: Reset Settings menu item ---
+    settingsMenu.addSeparator();
+
+    JMenuItem resetSettingsItem = new JMenuItem("Reset UI Settings");
+    resetSettingsItem.addActionListener(
+        e -> {
+          settingsManager.resetUiSettings();
+          JOptionPane.showMessageDialog(
+              this,
+              "UI settings have been reset.\nPlease restart the application for all changes to take effect.",
+              "Restart Required",
+              JOptionPane.INFORMATION_MESSAGE);
+        });
+    settingsMenu.add(resetSettingsItem);
+
+    JMenu helpMenu = new JMenu("Help");
+    menuBar.add(helpMenu);
+
+    JMenuItem aboutMenuItem = new JMenuItem("About UView");
+    aboutMenuItem.addActionListener(e -> showAboutDialog());
+    helpMenu.add(aboutMenuItem);
+
+    return menuBar;
+  }
+
+  // ... (The rest of the MainWindow class is unchanged) ...
   public void showAssetViewer(
       UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     String assetPath = asset.assetPath();
@@ -123,15 +276,6 @@ public class MainWindow extends JFrame {
     }
   }
 
-  // --- ADDED: Method to show the meta editor ---
-  /**
-   * Shows the meta editor for a given asset. If an editor for this asset is already open, it brings
-   * that window to the front. Otherwise, it creates a new editor.
-   *
-   * @param asset The asset whose metadata is to be edited.
-   * @param packageManager The package manager instance.
-   * @param onSaveCallback A callback to run when the metadata is modified.
-   */
   public void showMetaEditor(
       UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     String assetPath = asset.assetPath();
@@ -164,7 +308,7 @@ public class MainWindow extends JFrame {
         List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
         for (File file : files) {
           if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
-            return true; // Accept drop if at least one unitypackage is present
+            return true;
           }
         }
       } catch (Exception e) {
@@ -228,69 +372,6 @@ public class MainWindow extends JFrame {
     int exp = (int) (Math.log(bytes) / Math.log(1024));
     char pre = "KMGTPE".charAt(exp - 1);
     return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
-  }
-
-  private JMenuBar createMenuBar() {
-    JMenuBar menuBar = new JMenuBar();
-    JMenu fileMenu = new JMenu("File");
-    menuBar.add(fileMenu);
-
-    JMenuItem newMenuItem = new JMenuItem("New Package");
-    newMenuItem.addActionListener(e -> newPackage());
-    fileMenu.add(newMenuItem);
-
-    JMenuItem openMenuItem = new JMenuItem("Open...");
-    openMenuItem.addActionListener(e -> openFile());
-    fileMenu.add(openMenuItem);
-
-    openRecentMenu = new JMenu("Open Recent");
-    fileMenu.add(openRecentMenu);
-
-    closeMenuItem = new JMenuItem("Close");
-    closeMenuItem.addActionListener(e -> closePackage());
-    fileMenu.add(closeMenuItem);
-
-    fileMenu.addMenuListener(
-        new MenuListener() {
-          public void menuSelected(MenuEvent e) {
-            populateRecentFilesMenu();
-          }
-
-          public void menuDeselected(MenuEvent e) {}
-
-          public void menuCanceled(MenuEvent e) {}
-        });
-
-    fileMenu.add(new JSeparator());
-
-    saveMenuItem = new JMenuItem("Save");
-    saveMenuItem.addActionListener(e -> saveFile());
-    fileMenu.add(saveMenuItem);
-
-    saveAsMenuItem = new JMenuItem("Save As...");
-    saveAsMenuItem.addActionListener(e -> saveFileAs());
-    fileMenu.add(saveAsMenuItem);
-
-    fileMenu.add(new JSeparator());
-
-    extractAllMenuItem = new JMenuItem("Extract All...");
-    extractAllMenuItem.addActionListener(e -> extractAll());
-    fileMenu.add(extractAllMenuItem);
-
-    fileMenu.add(new JSeparator());
-
-    JMenuItem exitMenuItem = new JMenuItem("Exit");
-    exitMenuItem.addActionListener(e -> handleExit());
-    fileMenu.add(exitMenuItem);
-
-    JMenu helpMenu = new JMenu("Help");
-    menuBar.add(helpMenu);
-
-    JMenuItem aboutMenuItem = new JMenuItem("About UView");
-    aboutMenuItem.addActionListener(e -> showAboutDialog());
-    helpMenu.add(aboutMenuItem);
-
-    return menuBar;
   }
 
   private void showAboutDialog() {
@@ -377,17 +458,15 @@ public class MainWindow extends JFrame {
   }
 
   private void openPackage(File file) {
-    // Check if the file is already open in another tab.
     if (file != null) {
       for (int i = 0; i < tabbedPane.getTabCount(); i++) {
         Component comp = tabbedPane.getComponentAt(i);
         if (comp instanceof PackageViewPanel panel) {
           File openFile = panel.getPackageFile();
-          // Compare absolute paths to see if the file is already open.
           if (openFile != null && openFile.getAbsolutePath().equals(file.getAbsolutePath())) {
-            tabbedPane.setSelectedIndex(i); // Switch to the existing tab.
-            toFront(); // Bring the window to the front.
-            return; // Stop here, don't open a new tab.
+            tabbedPane.setSelectedIndex(i);
+            toFront();
+            return;
           }
         }
       }
@@ -446,7 +525,7 @@ public class MainWindow extends JFrame {
   private boolean confirmAndSaveChanges() {
     PackageViewPanel currentPanel = getCurrentPanel();
     if (currentPanel == null || !currentPanel.getPackageManager().isModified()) {
-      return true; // No changes to save, proceed.
+      return true;
     }
 
     int result =
@@ -460,12 +539,12 @@ public class MainWindow extends JFrame {
             JOptionPane.WARNING_MESSAGE);
 
     if (result == JOptionPane.CANCEL_OPTION) {
-      return false; // User cancelled the action.
+      return false;
     }
     if (result == JOptionPane.YES_OPTION) {
-      saveFile(); // Save the changes.
+      saveFile();
     }
-    return true; // Proceed with closing (either saved or chose not to).
+    return true;
   }
 
   void closePackage() {
@@ -478,15 +557,14 @@ public class MainWindow extends JFrame {
   }
 
   private void handleExit() {
-    // Iterate through all tabs and check for unsaved changes.
     for (int i = 0; i < tabbedPane.getTabCount(); i++) {
       tabbedPane.setSelectedIndex(i);
       if (!confirmAndSaveChanges()) {
-        return; // If user cancels at any point, abort the exit.
+        return;
       }
     }
-    dispose(); // Close the window
-    System.exit(0); // Terminate the application
+    dispose();
+    System.exit(0);
   }
 
   private void savePackageInBackground(PackageViewPanel panel, File file) {
@@ -501,7 +579,7 @@ public class MainWindow extends JFrame {
 
           @Override
           protected void done() {
-            panel.setPackageFile(file); // Update the file reference
+            panel.setPackageFile(file);
             updateState();
             setWorking(false, null);
           }
@@ -529,7 +607,6 @@ public class MainWindow extends JFrame {
         new SwingWorker<>() {
           @Override
           protected Void doInBackground() throws Exception {
-            // Extract all assets, stripping the root "Assets/" prefix for a clean output
             panel
                 .getPackageManager()
                 .extractAssets(panel.getPackageManager().getAssets(), outputDir, "Assets/");
@@ -540,7 +617,7 @@ public class MainWindow extends JFrame {
           protected void done() {
             setWorking(false, "Extraction complete.");
             try {
-              get(); // Check for exceptions
+              get();
               Desktop.getDesktop().open(outputDir.toFile());
             } catch (Exception ex) {
               JOptionPane.showMessageDialog(

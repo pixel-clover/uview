@@ -16,24 +16,43 @@ public class SettingsManager {
   private static final String LAST_DIRECTORY_KEY = "last_directory";
   private static final String RECENT_FILE_PREFIX = "recent_file_";
 
+  // --- ADDED: Keys for persistent UI settings ---
+  private static final String THEME_IS_DARK_KEY = "theme_is_dark";
+  private static final String FONT_SIZE_KEY = "font_size";
+  private static final int DEFAULT_FONT_SIZE = 12;
+
   private final Preferences prefs;
 
-  /**
-   * Constructs a settings manager using the default application preferences node. This is intended
-   * for use by the main application.
-   */
   public SettingsManager() {
     this(Preferences.userNodeForPackage(App.class));
   }
 
-  /**
-   * Constructs a settings manager using a specific preferences node. This is intended for testing
-   * to allow for dependency injection and isolation.
-   *
-   * @param prefs The preferences node to use for storing and retrieving settings.
-   */
   public SettingsManager(Preferences prefs) {
     this.prefs = prefs;
+  }
+
+  // --- ADDED: Methods for theme persistence ---
+  public boolean isDarkTheme() {
+    return prefs.getBoolean(THEME_IS_DARK_KEY, false); // Default to light theme
+  }
+
+  public void setDarkTheme(boolean isDark) {
+    prefs.putBoolean(THEME_IS_DARK_KEY, isDark);
+  }
+
+  // --- ADDED: Methods for font size persistence ---
+  public int getFontSize() {
+    return prefs.getInt(FONT_SIZE_KEY, DEFAULT_FONT_SIZE);
+  }
+
+  public void setFontSize(int size) {
+    prefs.putInt(FONT_SIZE_KEY, size);
+  }
+
+  // --- ADDED: Method to reset UI settings to default ---
+  public void resetUiSettings() {
+    prefs.remove(THEME_IS_DARK_KEY);
+    prefs.remove(FONT_SIZE_KEY);
   }
 
   public File getLastDirectory() {
@@ -44,7 +63,6 @@ public class SettingsManager {
         return dir;
       }
     }
-    // Fallback to the application's current working directory
     return new File(".");
   }
 
@@ -67,10 +85,9 @@ public class SettingsManager {
 
   public void addRecentFile(File file) {
     List<File> recentFiles = getRecentFiles();
-    recentFiles.remove(file); // Remove if it already exists to avoid duplicates
-    recentFiles.add(0, file); // Add to the top of the list
+    recentFiles.remove(file);
+    recentFiles.add(0, file);
 
-    // Trim the list and save back to preferences
     for (int i = 0; i < MAX_RECENT_FILES; i++) {
       if (i < recentFiles.size()) {
         prefs.put(RECENT_FILE_PREFIX + i, recentFiles.get(i).getAbsolutePath());
