@@ -1,20 +1,11 @@
 package io.github.pixelclover.uview.gui;
 
-import java.awt.BorderLayout;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -24,12 +15,12 @@ public class PdfViewerPanel extends JPanel {
 
   private final PDDocument document;
   private final PDFRenderer renderer;
-  private int currentPage = 0;
   private final JLabel pageLabel = new JLabel();
   private final JButton prevButton = new JButton("< Prev");
   private final JButton nextButton = new JButton("Next >");
   private final JLabel statusLabel = new JLabel();
   private final JTextField pageInputField = new JTextField(4);
+  private int currentPage = 0;
 
   public PdfViewerPanel(byte[] pdfData) throws IOException {
     super(new BorderLayout());

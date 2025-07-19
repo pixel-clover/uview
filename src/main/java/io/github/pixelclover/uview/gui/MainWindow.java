@@ -7,12 +7,7 @@ import io.github.pixelclover.uview.App;
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.core.SettingsManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.Font;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseAdapter;
@@ -23,33 +18,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.Enumeration;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
-import javax.swing.Icon;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JRadioButtonMenuItem;
-import javax.swing.JSeparator;
-import javax.swing.JTabbedPane;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
+import javax.swing.*;
 import javax.swing.Timer;
-import javax.swing.TransferHandler;
-import javax.swing.UIManager;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -99,6 +71,13 @@ public class MainWindow extends JFrame {
     add(tabbedPane, BorderLayout.CENTER);
     add(createStatusBar(), BorderLayout.SOUTH);
     updateState();
+  }
+
+  private static String formatSize(long bytes) {
+    if (bytes < 1024) return bytes + " B";
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    char pre = "KMGTPE".charAt(exp - 1);
+    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
   }
 
   private void loadAndApplySettings() {
@@ -314,46 +293,6 @@ public class MainWindow extends JFrame {
     }
   }
 
-  private class FileDropHandler extends TransferHandler {
-    @Override
-    public boolean canImport(TransferSupport support) {
-      if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-        return false;
-      }
-      try {
-        Transferable t = support.getTransferable();
-        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-        for (File file : files) {
-          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
-            return true;
-          }
-        }
-      } catch (Exception e) {
-        return false;
-      }
-      return false;
-    }
-
-    @Override
-    public boolean importData(TransferSupport support) {
-      if (!canImport(support)) {
-        return false;
-      }
-      try {
-        Transferable t = support.getTransferable();
-        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-        for (File file : files) {
-          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
-            openPackage(file);
-          }
-        }
-        return true;
-      } catch (Exception e) {
-        return false;
-      }
-    }
-  }
-
   private JPanel createStatusBar() {
     JPanel statusBar = new JPanel();
     statusBar.setLayout(new BoxLayout(statusBar, BoxLayout.X_AXIS));
@@ -382,13 +321,6 @@ public class MainWindow extends JFrame {
     Runtime runtime = Runtime.getRuntime();
     long usedMemory = runtime.totalMemory() - runtime.freeMemory();
     memoryUsageLabel.setText(String.format("Mem: %s", formatSize(usedMemory)));
-  }
-
-  private static String formatSize(long bytes) {
-    if (bytes < 1024) return bytes + " B";
-    int exp = (int) (Math.log(bytes) / Math.log(1024));
-    char pre = "KMGTPE".charAt(exp - 1);
-    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
   }
 
   private void showAboutDialog() {
@@ -686,6 +618,46 @@ public class MainWindow extends JFrame {
     setCursor(working ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
     if (status != null) {
       statusLabel.setText(status);
+    }
+  }
+
+  private class FileDropHandler extends TransferHandler {
+    @Override
+    public boolean canImport(TransferSupport support) {
+      if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+        return false;
+      }
+      try {
+        Transferable t = support.getTransferable();
+        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+        for (File file : files) {
+          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
+            return true;
+          }
+        }
+      } catch (Exception e) {
+        return false;
+      }
+      return false;
+    }
+
+    @Override
+    public boolean importData(TransferSupport support) {
+      if (!canImport(support)) {
+        return false;
+      }
+      try {
+        Transferable t = support.getTransferable();
+        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+        for (File file : files) {
+          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
+            openPackage(file);
+          }
+        }
+        return true;
+      } catch (Exception e) {
+        return false;
+      }
     }
   }
 }

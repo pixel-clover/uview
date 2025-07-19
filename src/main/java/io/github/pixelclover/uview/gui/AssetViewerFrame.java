@@ -2,10 +2,7 @@ package io.github.pixelclover.uview.gui;
 
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.BorderLayout;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -14,16 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
+import javax.swing.*;
 
 public class AssetViewerFrame extends JFrame {
 
@@ -54,13 +42,15 @@ public class AssetViewerFrame extends JFrame {
   private static final Set<String> IMAGE_EXTENSIONS =
       Set.of(
           "png", "jpg", "jpeg", "gif", "tga", "bmp", "webp", "svg", "ico", "avif", "tiff", "tif");
-  private static final Set<String> MEDIA_EXTENSIONS = Set.of("mp4", "mov", "wav", "mp3", "ogg");
+  private static final Set<String> AUDIO_EXTENSIONS = Set.of("wav", "mp3", "ogg");
+  private static final Set<String> VIDEO_EXTENSIONS = Set.of("mp4", "mov");
   private static final Set<String> PDF_EXTENSIONS = Set.of("pdf");
   private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("#,##0.0 KB");
 
   private final PackageManager packageManager;
   private final Runnable onSaveCallback;
   private PdfViewerPanel pdfPanel;
+  private AudioPlayerPanel audioPanel;
 
   public AssetViewerFrame(
       JFrame owner, UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
@@ -92,6 +82,9 @@ public class AssetViewerFrame extends JFrame {
               } catch (IOException ex) {
                 System.err.println("Failed to close PDF document: " + ex.getMessage());
               }
+            }
+            if (audioPanel != null) {
+              audioPanel.close();
             }
           }
         });
@@ -151,7 +144,16 @@ public class AssetViewerFrame extends JFrame {
         errorLabel.setHorizontalAlignment(JLabel.CENTER);
         contentWrapperPanel.add(errorLabel, BorderLayout.CENTER);
       }
-    } else if (MEDIA_EXTENSIONS.contains(extension)) {
+    } else if (AUDIO_EXTENSIONS.contains(extension)) {
+      try {
+        this.audioPanel = new AudioPlayerPanel(asset.content());
+        contentWrapperPanel.add(this.audioPanel, BorderLayout.CENTER);
+      } catch (Exception e) {
+        JLabel errorLabel = new JLabel("Failed to load audio: " + e.getMessage());
+        errorLabel.setHorizontalAlignment(JLabel.CENTER);
+        contentWrapperPanel.add(errorLabel, BorderLayout.CENTER);
+      }
+    } else if (VIDEO_EXTENSIONS.contains(extension)) {
       handleMediaAsset(asset);
       return null;
     } else {
