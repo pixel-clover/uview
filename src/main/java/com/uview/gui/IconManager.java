@@ -30,6 +30,7 @@ public final class IconManager {
     ICON_CACHE.put("bmp", loadIcon("file_image.svg"));
     ICON_CACHE.put("svg", loadIcon("file_image.svg"));
     ICON_CACHE.put("tiff", loadIcon("file_image.svg"));
+    ICON_CACHE.put("tif", loadIcon("file_image.svg"));
     ICON_CACHE.put("ttf", loadIcon("file_font.svg"));
     ICON_CACHE.put("shader", loadIcon("file_code.svg"));
     ICON_CACHE.put("fbx", loadIcon("file_archive.svg"));
@@ -40,7 +41,7 @@ public final class IconManager {
     ICON_CACHE.put("wav", loadIcon("file_audio.svg"));
     ICON_CACHE.put("mp3", loadIcon("file_audio.svg"));
     ICON_CACHE.put("txt", loadIcon("file_text.svg"));
-    ICON_CACHE.put("mat", loadIcon("file_json.svg"));
+    ICON_CACHE.put("mat", loadIcon("file_text.svg"));
     ICON_CACHE.put("unity", loadIcon("file_diagram.svg"));
     ICON_CACHE.put("json", loadIcon("file_json.svg"));
     ICON_CACHE.put("xml", loadIcon("file_xml.svg"));

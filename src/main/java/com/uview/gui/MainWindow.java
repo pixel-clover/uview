@@ -4,6 +4,7 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.uview.App;
 import com.uview.core.SettingsManager;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -231,8 +232,8 @@ public class MainWindow extends JFrame {
             + "<p><b>Version:</b> "
             + version
             + "</p>"
-            + "<p>A cross-platform tool for viewing and modifying Unity package files.</p>"
-            + "<p><b>GitHub:</b> <a href='https://github.com/pixel-clover/uview'>https://github.com/pixel-clover/uview</a></p>"
+            + "<p>A desktop tool for viewing and modifying Unity packages.</p>"
+            + "<p><b>GitHub:</b> <a href='https://github.com/habedi/uview'>https://github.com/habedi/uview</a></p>"
             + "</body></html>";
 
     java.net.URL iconUrl = App.class.getResource("/logo.svg");
@@ -305,6 +306,22 @@ public class MainWindow extends JFrame {
   }
 
   private void openPackage(File file) {
+    // Check if the file is already open in another tab.
+    if (file != null) {
+      for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+        Component comp = tabbedPane.getComponentAt(i);
+        if (comp instanceof PackageViewPanel panel) {
+          File openFile = panel.getPackageFile();
+          // Compare absolute paths to see if the file is already open.
+          if (openFile != null && openFile.getAbsolutePath().equals(file.getAbsolutePath())) {
+            tabbedPane.setSelectedIndex(i); // Switch to the existing tab.
+            toFront(); // Bring the window to the front.
+            return; // Stop here, don't open a new tab.
+          }
+        }
+      }
+    }
+
     setWorking(true, "Loading...");
     PackageViewPanel newPanel = new PackageViewPanel(this, file, settingsManager);
     newPanel.loadPackage(

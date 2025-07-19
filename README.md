@@ -1,6 +1,6 @@
 <div align="center">
   <picture>
-    <img alt="UView Logo" src="logo.svg" height="20%" width="20%">
+    <img alt="UView Logo" src="src/main/resources/logo.svg" height="20%" width="20%">
   </picture>
 <br>
 
@@ -40,8 +40,8 @@ It allows you to view, extract, and modify the contents of `.unitypackage` files
 <summary>Show more screenshots</summary>
 
 <div align="center">
-  <img alt="Chat View" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
-  <img alt="Chat View" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
+  <img alt="C# Code" src="docs/assets/screenshots/uview-0.1.0-b.2-2.png" width="80%">
+  <img alt="Image View" src="docs/assets/screenshots/uview-0.1.0-b.2-3.png" width="80%">
 </div>
 
 </details>

@@ -1,19 +1,13 @@
 package com.uview.gui;
 
 import com.uview.model.UnityAsset;
-import java.awt.BorderLayout;
-import java.awt.Color;
+import java.awt.*;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
-import javax.swing.JPanel;
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.Style;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rsyntaxtextarea.SyntaxScheme;
-import org.fife.ui.rsyntaxtextarea.Theme;
-import org.fife.ui.rsyntaxtextarea.Token;
+import org.fife.ui.rsyntaxtextarea.*;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 public class SyntaxTextPanel extends JPanel {
