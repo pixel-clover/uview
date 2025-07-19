@@ -1,11 +1,21 @@
 package com.uview.gui;
 
-import java.awt.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 import javax.swing.plaf.basic.BasicButtonUI;
 
 public class ButtonTabComponent extends JPanel {
@@ -65,7 +75,15 @@ public class ButtonTabComponent extends JPanel {
     public void actionPerformed(ActionEvent e) {
       int i = pane.indexOfTabComponent(ButtonTabComponent.this);
       if (i != -1) {
-        pane.remove(i);
+        Component topLevelAncestor = pane.getTopLevelAncestor();
+        if (topLevelAncestor instanceof MainWindow) {
+          MainWindow mainWindow = (MainWindow) topLevelAncestor;
+          pane.setSelectedIndex(i);
+          mainWindow.closePackage();
+        } else {
+          // Fallback just in case, but should not be reached in this app
+          pane.remove(i);
+        }
       }
     }
 

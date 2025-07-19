@@ -33,10 +33,9 @@ public final class TreeModelBuilder {
 
       // Now that the parent is guaranteed to exist, create the node for the current asset.
       if (!nodeMap.containsKey(normalizedPath)) {
-        TreeEntry entry =
-            asset.isDirectory()
-                ? new TreeEntry.DirectoryEntry(path)
-                : new TreeEntry.AssetEntry(asset);
+        // FIX: Always use AssetEntry for an actual asset from the package, whether it's
+        // a file or a folder asset. This preserves the underlying UnityAsset object.
+        TreeEntry entry = new TreeEntry.AssetEntry(asset);
         DefaultMutableTreeNode assetNode = new DefaultMutableTreeNode(entry);
         parentNode.add(assetNode);
         nodeMap.put(normalizedPath, assetNode);

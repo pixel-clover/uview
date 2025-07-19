@@ -146,7 +146,6 @@ public class PackageViewPanel extends JPanel {
   private JPopupMenu createPopupMenu() {
     JPopupMenu popup = new JPopupMenu();
     TreePath selectionPath = tree.getSelectionPath();
-    boolean isNodeSelected = selectionPath != null;
 
     JMenuItem viewMenuItem = new JMenuItem("View");
     viewMenuItem.addActionListener(e -> handleDoubleClick());
@@ -163,26 +162,37 @@ public class PackageViewPanel extends JPanel {
     popup.add(addMenuItem);
 
     JMenuItem removeMenuItem = new JMenuItem("Remove");
-    removeMenuItem.setEnabled(isNodeSelected);
     removeMenuItem.addActionListener(e -> removeSelectedAsset());
     popup.add(removeMenuItem);
 
     popup.add(new JSeparator());
 
     JMenuItem extractSelectedMenuItem = new JMenuItem("Extract Selected...");
-    extractSelectedMenuItem.setEnabled(isNodeSelected);
     extractSelectedMenuItem.addActionListener(e -> extractSelected());
     popup.add(extractSelectedMenuItem);
 
-    if (isNodeSelected) {
+    // Default to disabled
+    viewMenuItem.setEnabled(false);
+    editMetaMenuItem.setEnabled(false);
+    removeMenuItem.setEnabled(false);
+    extractSelectedMenuItem.setEnabled(false);
+
+    if (selectionPath != null) {
       DefaultMutableTreeNode selectedNode =
           (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
-      boolean isAsset = selectedNode.getUserObject() instanceof TreeEntry.AssetEntry;
-      viewMenuItem.setEnabled(isAsset);
-      editMetaMenuItem.setEnabled(isAsset); // Enable for any asset
-    } else {
-      viewMenuItem.setEnabled(false);
-      editMetaMenuItem.setEnabled(false);
+      Object userObject = selectedNode.getUserObject();
+
+      removeMenuItem.setEnabled(true);
+      extractSelectedMenuItem.setEnabled(true);
+
+      if (userObject instanceof TreeEntry.AssetEntry assetEntry) {
+        // It's a real asset from the package (file or folder).
+        // Always allow editing its meta file.
+        editMetaMenuItem.setEnabled(true);
+
+        // Only enable "View" if it's not a directory (i.e., it has content).
+        viewMenuItem.setEnabled(!assetEntry.asset().isDirectory());
+      }
     }
 
     return popup;
@@ -345,6 +355,7 @@ public class PackageViewPanel extends JPanel {
     if (userObject instanceof TreeEntry.AssetEntry entry) {
       Runnable onSaveCallback =
           () -> {
+            refreshTree();
             if (owner instanceof MainWindow) {
               ((MainWindow) owner).updateState();
             }
@@ -367,6 +378,7 @@ public class PackageViewPanel extends JPanel {
       // This callback will ask the main window to update its state (e.g., enable Save menu item)
       Runnable onSaveCallback =
           () -> {
+            refreshTree();
             if (owner instanceof MainWindow) {
               ((MainWindow) owner).updateState();
             }

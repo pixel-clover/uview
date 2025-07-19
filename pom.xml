@@ -11,7 +11,7 @@
 
   <name>UView</name>
   <description>A desktop application for viewing, extracting, and modifying Unity package files.</description>
-  <url>https://github.com/habedi/uview</url>
+  <url>https://github.com/pixel-clover/uview</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

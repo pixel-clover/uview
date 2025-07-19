@@ -156,6 +156,7 @@ public class AssetViewerFrame extends JFrame {
         e -> {
           byte[] newContent = syntaxTextPanel.getText().getBytes(StandardCharsets.UTF_8);
           packageManager.updateAssetContent(asset.assetPath(), newContent);
+          syntaxTextPanel.markAsSaved(); // Reset the dirty state
           onSaveCallback.run();
         });
 
