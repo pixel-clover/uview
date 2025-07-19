@@ -2,14 +2,28 @@ package io.github.pixelclover.uview.gui;
 
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 public class AssetViewerFrame extends JFrame {
 
@@ -41,10 +55,12 @@ public class AssetViewerFrame extends JFrame {
       Set.of(
           "png", "jpg", "jpeg", "gif", "tga", "bmp", "webp", "svg", "ico", "avif", "tiff", "tif");
   private static final Set<String> MEDIA_EXTENSIONS = Set.of("mp4", "mov", "wav", "mp3", "ogg");
+  private static final Set<String> PDF_EXTENSIONS = Set.of("pdf");
   private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("#,##0.0 KB");
 
   private final PackageManager packageManager;
   private final Runnable onSaveCallback;
+  private PdfViewerPanel pdfPanel;
 
   public AssetViewerFrame(
       JFrame owner, UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
@@ -59,12 +75,26 @@ public class AssetViewerFrame extends JFrame {
 
     JPanel contentPanel = createContentPanel(asset);
     if (contentPanel == null) {
-      dispose(); // Frame was closed by media handler
+      dispose();
       return;
     }
 
     add(contentPanel, BorderLayout.CENTER);
     add(createFooterPanel(asset), BorderLayout.SOUTH);
+
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosed(WindowEvent e) {
+            if (pdfPanel != null) {
+              try {
+                pdfPanel.close();
+              } catch (IOException ex) {
+                System.err.println("Failed to close PDF document: " + ex.getMessage());
+              }
+            }
+          }
+        });
   }
 
   private JPanel createFooterPanel(UnityAsset asset) {
@@ -72,11 +102,9 @@ public class AssetViewerFrame extends JFrame {
     footer.setLayout(new BoxLayout(footer, BoxLayout.X_AXIS));
     footer.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
 
-    // Path
     JLabel pathLabel = new JLabel(asset.assetPath());
-    pathLabel.setToolTipText(asset.assetPath()); // Show full path on hover
+    pathLabel.setToolTipText(asset.assetPath());
 
-    // Size
     String size = "N/A (Directory)";
     if (asset.content() != null) {
       double sizeInKb = asset.content().length / 1024.0;
@@ -84,7 +112,6 @@ public class AssetViewerFrame extends JFrame {
     }
     JLabel sizeLabel = new JLabel(size);
 
-    // GUID
     JLabel guidLabel = new JLabel("GUID: " + asset.guid());
 
     footer.add(pathLabel);
@@ -109,21 +136,29 @@ public class AssetViewerFrame extends JFrame {
       return createTextEditorPanel(asset);
     }
 
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    JPanel contentWrapperPanel = new JPanel(new BorderLayout());
 
     if (IMAGE_EXTENSIONS.contains(extension)) {
       ImageIcon imageIcon = new ImageIcon(asset.content());
       JLabel imageLabel = new JLabel(imageIcon);
-      panel.add(new JScrollPane(imageLabel), BorderLayout.CENTER);
+      contentWrapperPanel.add(new JScrollPane(imageLabel), BorderLayout.CENTER);
+    } else if (PDF_EXTENSIONS.contains(extension)) {
+      try {
+        this.pdfPanel = new PdfViewerPanel(asset.content());
+        contentWrapperPanel.add(this.pdfPanel, BorderLayout.CENTER);
+      } catch (IOException e) {
+        JLabel errorLabel = new JLabel("Failed to load PDF: " + e.getMessage());
+        errorLabel.setHorizontalAlignment(JLabel.CENTER);
+        contentWrapperPanel.add(errorLabel, BorderLayout.CENTER);
+      }
     } else if (MEDIA_EXTENSIONS.contains(extension)) {
       handleMediaAsset(asset);
       return null;
     } else {
-      panel.add(new JLabel("Binary content cannot be previewed."), BorderLayout.CENTER);
+      contentWrapperPanel.add(
+          new JLabel("Binary content cannot be previewed."), BorderLayout.CENTER);
     }
-
-    return panel;
+    return contentWrapperPanel;
   }
 
   private JPanel createTextEditorPanel(UnityAsset asset) {
@@ -146,7 +181,7 @@ public class AssetViewerFrame extends JFrame {
         e -> {
           byte[] newContent = syntaxTextPanel.getText().getBytes(StandardCharsets.UTF_8);
           packageManager.updateAssetContent(asset.assetPath(), newContent);
-          syntaxTextPanel.markAsSaved(); // Reset the dirty state
+          syntaxTextPanel.markAsSaved();
           onSaveCallback.run();
         });
 

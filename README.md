@@ -81,7 +81,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this 
 
 ### Acknowledgements
 
-UView is built using these amazing open-source libraries:
+UView is built using a lot of amazing open-source libraries, including:
 
 - [FlatLaf](https://www.formdev.com/flatlaf/) for the nice and modern UI.
 - [RSyntaxTextArea](https://bobbylight.github.io/RSyntaxTextArea/) for syntax highlighting.
