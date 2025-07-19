@@ -50,12 +50,13 @@ public final class IconManager {
     ICON_CACHE.put("css", loadIcon("file_css.svg"));
     ICON_CACHE.put("uss", loadIcon("file_css.svg"));
     ICON_CACHE.put("html", loadIcon("file_html.svg"));
+    ICON_CACHE.put("pdf", loadIcon("file_pdf.svg"));
   }
 
   private IconManager() {}
 
   private static Icon loadIcon(String iconName) {
-    String resourcePath = "/icons/" + iconName;
+    String resourcePath = "/icons/tabler_v1/" + iconName;
     java.net.URL resourceUrl = IconManager.class.getResource(resourcePath);
 
     if (resourceUrl == null) {

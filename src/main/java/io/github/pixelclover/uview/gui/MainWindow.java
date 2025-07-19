@@ -12,6 +12,7 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseAdapter;
@@ -30,6 +31,7 @@ import java.util.Properties;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.Icon;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -40,6 +42,7 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
@@ -52,7 +55,6 @@ import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.plaf.FontUIResource;
 
-/** The main application window for UView. */
 public class MainWindow extends JFrame {
 
   private final SettingsManager settingsManager = new SettingsManager();
@@ -77,7 +79,6 @@ public class MainWindow extends JFrame {
     setSize(800, 600);
     setLocationRelativeTo(null);
 
-    // --- MODIFIED: Load and apply settings on startup ---
     loadAndApplySettings();
 
     addWindowListener(
@@ -100,13 +101,11 @@ public class MainWindow extends JFrame {
     updateState();
   }
 
-  // --- ADDED: Load settings from SettingsManager and apply them ---
   private void loadAndApplySettings() {
     applyTheme(settingsManager.isDarkTheme());
-    setGlobalFontSize(settingsManager.getFontSize(), false); // Don't save on initial load
+    updateUiFont(settingsManager.getFontFamily(), settingsManager.getFontSize(), false);
   }
 
-  // --- ADDED: A dedicated method to apply a theme ---
   private void applyTheme(boolean useDarkTheme) {
     try {
       if (useDarkTheme) {
@@ -121,21 +120,17 @@ public class MainWindow extends JFrame {
     }
   }
 
-  // --- MODIFIED: Logic to toggle the theme and save the setting ---
   private void toggleTheme() {
     boolean newIsDark = !settingsManager.isDarkTheme();
     settingsManager.setDarkTheme(newIsDark);
     applyTheme(newIsDark);
   }
 
-  // --- MODIFIED: Renamed and updated to save the new font size ---
-  private void setGlobalFontSize(int newSize, boolean saveSetting) {
-    if (newSize < 10 || newSize > 24) {
-      return; // Set reasonable size limits
+  private void updateUiFont(String family, int size, boolean save) {
+    if (size < 10 || size > 24) {
+      return; // Clamp size
     }
-
-    FontUIResource newFont =
-        new FontUIResource(UIManager.getFont("Label.font").deriveFont((float) newSize));
+    FontUIResource newFont = new FontUIResource(family, Font.PLAIN, size);
     Enumeration<Object> keys = UIManager.getDefaults().keys();
     while (keys.hasMoreElements()) {
       Object key = keys.nextElement();
@@ -144,24 +139,22 @@ public class MainWindow extends JFrame {
         UIManager.put(key, newFont);
       }
     }
-    SwingUtilities.updateComponentTreeUI(this);
-
-    if (saveSetting) {
-      settingsManager.setFontSize(newSize);
+    if (save) {
+      settingsManager.setFontFamily(family);
+      settingsManager.setFontSize(size);
     }
+    SwingUtilities.updateComponentTreeUI(this);
   }
 
-  // --- MODIFIED: Incremental change now calls the main font size setter ---
   private void changeGlobalFontSize(int amount) {
-    int currentSize = UIManager.getFont("Label.font").getSize();
-    setGlobalFontSize(currentSize + amount, true);
+    int currentSize = settingsManager.getFontSize();
+    updateUiFont(settingsManager.getFontFamily(), currentSize + amount, true);
   }
 
   private JMenuBar createMenuBar() {
     JMenuBar menuBar = new JMenuBar();
 
     JMenu fileMenu = new JMenu("File");
-    // ... (File menu items are unchanged)
     menuBar.add(fileMenu);
 
     JMenuItem newMenuItem = new JMenuItem("New Package");
@@ -221,6 +214,33 @@ public class MainWindow extends JFrame {
 
     settingsMenu.addSeparator();
 
+    JMenu fontMenu = new JMenu("Font");
+    settingsMenu.add(fontMenu);
+
+    ButtonGroup fontGroup = new ButtonGroup();
+    String[] fontFamilies = {"JetBrains Mono", Font.SANS_SERIF, Font.SERIF, Font.MONOSPACED};
+    String currentFontFamily = settingsManager.getFontFamily();
+
+    for (String fontFamily : fontFamilies) {
+      JRadioButtonMenuItem fontItem = new JRadioButtonMenuItem(fontFamily);
+      fontItem.setSelected(fontFamily.equals(currentFontFamily));
+      fontItem.addActionListener(
+          e -> {
+            updateUiFont(fontFamily, settingsManager.getFontSize(), true);
+            JOptionPane.showMessageDialog(
+                this,
+                "Font changed to "
+                    + fontFamily
+                    + ".\nSome components may require a restart to update fully.",
+                "Font Changed",
+                JOptionPane.INFORMATION_MESSAGE);
+          });
+      fontGroup.add(fontItem);
+      fontMenu.add(fontItem);
+    }
+
+    settingsMenu.addSeparator();
+
     JMenuItem increaseFontItem = new JMenuItem("Increase Font Size");
     increaseFontItem.addActionListener(e -> changeGlobalFontSize(1));
     settingsMenu.add(increaseFontItem);
@@ -229,7 +249,6 @@ public class MainWindow extends JFrame {
     decreaseFontItem.addActionListener(e -> changeGlobalFontSize(-1));
     settingsMenu.add(decreaseFontItem);
 
-    // --- ADDED: Reset Settings menu item ---
     settingsMenu.addSeparator();
 
     JMenuItem resetSettingsItem = new JMenuItem("Reset UI Settings");
@@ -246,7 +265,6 @@ public class MainWindow extends JFrame {
 
     JMenu helpMenu = new JMenu("Help");
     menuBar.add(helpMenu);
-
     JMenuItem aboutMenuItem = new JMenuItem("About UView");
     aboutMenuItem.addActionListener(e -> showAboutDialog());
     helpMenu.add(aboutMenuItem);
@@ -254,7 +272,6 @@ public class MainWindow extends JFrame {
     return menuBar;
   }
 
-  // ... (The rest of the MainWindow class is unchanged) ...
   public void showAssetViewer(
       UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
     String assetPath = asset.assetPath();

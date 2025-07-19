@@ -1,25 +1,23 @@
 package io.github.pixelclover.uview.core;
 
 import io.github.pixelclover.uview.App;
+import java.awt.Font; // --- ADD THIS IMPORT ---
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.prefs.Preferences;
 
-/**
- * Manages persistent application settings using the Java Preferences API. This class handles
- * storing and retrieving user preferences like the last used directory and recently opened files.
- */
 public class SettingsManager {
 
   private static final int MAX_RECENT_FILES = 5;
   private static final String LAST_DIRECTORY_KEY = "last_directory";
   private static final String RECENT_FILE_PREFIX = "recent_file_";
 
-  // --- ADDED: Keys for persistent UI settings ---
   private static final String THEME_IS_DARK_KEY = "theme_is_dark";
   private static final String FONT_SIZE_KEY = "font_size";
+  private static final String FONT_FAMILY_KEY = "font_family";
   private static final int DEFAULT_FONT_SIZE = 12;
+  private static final String DEFAULT_FONT_FAMILY = Font.SANS_SERIF;
 
   private final Preferences prefs;
 
@@ -31,16 +29,14 @@ public class SettingsManager {
     this.prefs = prefs;
   }
 
-  // --- ADDED: Methods for theme persistence ---
   public boolean isDarkTheme() {
-    return prefs.getBoolean(THEME_IS_DARK_KEY, false); // Default to light theme
+    return prefs.getBoolean(THEME_IS_DARK_KEY, false);
   }
 
   public void setDarkTheme(boolean isDark) {
     prefs.putBoolean(THEME_IS_DARK_KEY, isDark);
   }
 
-  // --- ADDED: Methods for font size persistence ---
   public int getFontSize() {
     return prefs.getInt(FONT_SIZE_KEY, DEFAULT_FONT_SIZE);
   }
@@ -49,10 +45,18 @@ public class SettingsManager {
     prefs.putInt(FONT_SIZE_KEY, size);
   }
 
-  // --- ADDED: Method to reset UI settings to default ---
+  public String getFontFamily() {
+    return prefs.get(FONT_FAMILY_KEY, DEFAULT_FONT_FAMILY);
+  }
+
+  public void setFontFamily(String fontFamily) {
+    prefs.put(FONT_FAMILY_KEY, fontFamily);
+  }
+
   public void resetUiSettings() {
     prefs.remove(THEME_IS_DARK_KEY);
     prefs.remove(FONT_SIZE_KEY);
+    prefs.remove(FONT_FAMILY_KEY);
   }
 
   public File getLastDirectory() {
