@@ -14,8 +14,16 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 
+/** Handles reading from and writing to .unitypackage files. */
 public class PackageIO {
 
+  /**
+   * Loads a {@link UnityPackage} from a .unitypackage file.
+   *
+   * @param packageFile The .unitypackage file to load.
+   * @return The loaded {@link UnityPackage} object.
+   * @throws IOException If an I/O error occurs while reading the file.
+   */
   public UnityPackage load(File packageFile) throws IOException {
     UnityPackage unityPackage = new UnityPackage();
     Map<String, Map<String, byte[]>> rawData = new HashMap<>();
@@ -55,6 +63,13 @@ public class PackageIO {
     return unityPackage;
   }
 
+  /**
+   * Saves a {@link UnityPackage} to a .unitypackage file.
+   *
+   * @param unityPackage The {@link UnityPackage} to save.
+   * @param packageFile The destination .unitypackage file.
+   * @throws IOException If an I/O error occurs while writing the file.
+   */
   public void save(UnityPackage unityPackage, File packageFile) throws IOException {
     File tempFile = Files.createTempFile("uview-", ".unitypackage").toFile();
 
