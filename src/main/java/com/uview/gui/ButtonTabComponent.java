@@ -65,7 +65,15 @@ public class ButtonTabComponent extends JPanel {
     public void actionPerformed(ActionEvent e) {
       int i = pane.indexOfTabComponent(ButtonTabComponent.this);
       if (i != -1) {
-        pane.remove(i);
+        Component topLevelAncestor = pane.getTopLevelAncestor();
+        if (topLevelAncestor instanceof MainWindow) {
+          MainWindow mainWindow = (MainWindow) topLevelAncestor;
+          pane.setSelectedIndex(i);
+          mainWindow.closePackage();
+        } else {
+          // Fallback just in case, but should not be reached in this app
+          pane.remove(i);
+        }
       }
     }
 

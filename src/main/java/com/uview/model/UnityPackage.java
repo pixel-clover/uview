@@ -63,6 +63,14 @@ public class UnityPackage {
     return Collections.unmodifiableMap(assetsByGuid);
   }
 
+  public UnityAsset getAssetByPath(String assetPath) {
+    String guid = pathToGuid.get(assetPath);
+    if (guid != null) {
+      return assetsByGuid.get(guid);
+    }
+    return null;
+  }
+
   public void addAsset(UnityAsset asset) {
     assetsByGuid.put(asset.guid(), asset);
     pathToGuid.put(asset.assetPath(), asset.guid());

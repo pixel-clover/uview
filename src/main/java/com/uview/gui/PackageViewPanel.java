@@ -6,30 +6,14 @@ import com.uview.core.SettingsManager;
 import com.uview.gui.tree.TreeEntry;
 import com.uview.io.PackageIO;
 import com.uview.model.UnityAsset;
-import java.awt.BorderLayout;
-import java.awt.Cursor;
-import java.awt.Desktop;
-import java.awt.Dimension;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.BorderFactory;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTextField;
-import javax.swing.JTree;
-import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
-import javax.swing.Timer;
+import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -44,8 +28,8 @@ public class PackageViewPanel extends JPanel {
   private final DefaultTreeModel treeModel;
   private final JFrame owner;
   private final Timer searchDebounceTimer;
-  private File packageFile;
   private final JTextField searchField;
+  private File packageFile;
 
   public PackageViewPanel(JFrame owner, File packageFile, SettingsManager settingsManager) {
     super(new BorderLayout());
@@ -97,9 +81,14 @@ public class PackageViewPanel extends JPanel {
             if (SwingUtilities.isRightMouseButton(e)) {
               // Only show menu if we are not on an info message node
               TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
-              if (path != null && tree.getModel().getChildCount(path.getLastPathComponent()) > 0) {
-                tree.setSelectionPath(path);
+              if (path != null) {
+                // If clicking on empty space but a node is selected, keep selection.
+                // If clicking on a different node, select it.
+                if (tree.getRowForPath(path) != -1 && !tree.isPathSelected(path)) {
+                  tree.setSelectionPath(path);
+                }
               }
+
               if (tree.getSelectionPath() != null) {
                 createPopupMenu().show(e.getComponent(), e.getX(), e.getY());
               }
@@ -141,11 +130,14 @@ public class PackageViewPanel extends JPanel {
   private JPopupMenu createPopupMenu() {
     JPopupMenu popup = new JPopupMenu();
     TreePath selectionPath = tree.getSelectionPath();
-    boolean isNodeSelected = selectionPath != null;
 
     JMenuItem viewMenuItem = new JMenuItem("View");
     viewMenuItem.addActionListener(e -> handleDoubleClick());
     popup.add(viewMenuItem);
+
+    JMenuItem editMetaMenuItem = new JMenuItem("Edit Meta File");
+    editMetaMenuItem.addActionListener(e -> editSelectedMetaFile());
+    popup.add(editMetaMenuItem);
 
     popup.add(new JSeparator());
 
@@ -154,23 +146,37 @@ public class PackageViewPanel extends JPanel {
     popup.add(addMenuItem);
 
     JMenuItem removeMenuItem = new JMenuItem("Remove");
-    removeMenuItem.setEnabled(isNodeSelected);
     removeMenuItem.addActionListener(e -> removeSelectedAsset());
     popup.add(removeMenuItem);
 
     popup.add(new JSeparator());
 
     JMenuItem extractSelectedMenuItem = new JMenuItem("Extract Selected...");
-    extractSelectedMenuItem.setEnabled(isNodeSelected);
     extractSelectedMenuItem.addActionListener(e -> extractSelected());
     popup.add(extractSelectedMenuItem);
 
-    if (isNodeSelected) {
+    // Default to disabled
+    viewMenuItem.setEnabled(false);
+    editMetaMenuItem.setEnabled(false);
+    removeMenuItem.setEnabled(false);
+    extractSelectedMenuItem.setEnabled(false);
+
+    if (selectionPath != null) {
       DefaultMutableTreeNode selectedNode =
           (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
-      viewMenuItem.setEnabled(selectedNode.getUserObject() instanceof TreeEntry.AssetEntry);
-    } else {
-      viewMenuItem.setEnabled(false);
+      Object userObject = selectedNode.getUserObject();
+
+      removeMenuItem.setEnabled(true);
+      extractSelectedMenuItem.setEnabled(true);
+
+      if (userObject instanceof TreeEntry.AssetEntry assetEntry) {
+        // It's a real asset from the package (file or folder).
+        // Always allow editing its meta file.
+        editMetaMenuItem.setEnabled(true);
+
+        // Only enable "View" if it's not a directory (i.e., it has content).
+        viewMenuItem.setEnabled(!assetEntry.asset().isDirectory());
+      }
     }
 
     return popup;
@@ -331,8 +337,40 @@ public class PackageViewPanel extends JPanel {
         (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
     Object userObject = selectedNode.getUserObject();
     if (userObject instanceof TreeEntry.AssetEntry entry) {
-      AssetViewerFrame viewer = new AssetViewerFrame(owner, entry.asset());
+      Runnable onSaveCallback =
+          () -> {
+            refreshTree();
+            if (owner instanceof MainWindow) {
+              ((MainWindow) owner).updateState();
+            }
+          };
+      AssetViewerFrame viewer =
+          new AssetViewerFrame((JFrame) owner, entry.asset(), packageManager, onSaveCallback);
       viewer.setVisible(true);
+    }
+  }
+
+  private void editSelectedMetaFile() {
+    TreePath selectionPath = tree.getSelectionPath();
+    if (selectionPath == null) {
+      return;
+    }
+
+    DefaultMutableTreeNode selectedNode =
+        (DefaultMutableTreeNode) selectionPath.getLastPathComponent();
+    if (selectedNode.getUserObject() instanceof TreeEntry.AssetEntry entry) {
+      // This callback will ask the main window to update its state (e.g., enable Save menu item)
+      Runnable onSaveCallback =
+          () -> {
+            refreshTree();
+            if (owner instanceof MainWindow) {
+              ((MainWindow) owner).updateState();
+            }
+          };
+
+      MetaEditorFrame editor =
+          new MetaEditorFrame((JFrame) owner, entry.asset(), packageManager, onSaveCallback);
+      editor.setVisible(true);
     }
   }
 

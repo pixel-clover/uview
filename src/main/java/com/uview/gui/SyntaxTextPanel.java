@@ -3,22 +3,34 @@ package com.uview.gui;
 import com.uview.model.UnityAsset;
 import java.awt.*;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 import javax.swing.*;
-import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
-import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
-import org.fife.ui.rsyntaxtextarea.Theme;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import org.fife.ui.rsyntaxtextarea.*;
 import org.fife.ui.rtextarea.RTextScrollPane;
 
 public class SyntaxTextPanel extends JPanel {
 
-  public SyntaxTextPanel(UnityAsset asset) {
-    super(new BorderLayout());
+  private final RSyntaxTextArea textArea;
+  private final Consumer<Boolean> onDirtyStateChange;
+  private DocumentListener dirtyStateListener;
+  private String savedContent;
 
-    RSyntaxTextArea textArea = new RSyntaxTextArea();
-    textArea.setEditable(false);
+  public SyntaxTextPanel(UnityAsset asset, Consumer<Boolean> onDirtyStateChange) {
+    super(new BorderLayout());
+    this.onDirtyStateChange = onDirtyStateChange;
+
+    textArea = new RSyntaxTextArea();
+    textArea.setEditable(true);
+
     assert asset.content() != null;
-    textArea.setText(new String(asset.content(), StandardCharsets.UTF_8));
+    this.savedContent = new String(asset.content(), StandardCharsets.UTF_8);
+    textArea.setText(savedContent);
     textArea.setCaretPosition(0); // Scroll to the top
+
+    // Clear the undo/redo history after loading the initial content.
+    textArea.discardAllEdits();
 
     setSyntaxStyle(textArea, getFileExtension(asset.assetPath()));
 
@@ -27,12 +39,83 @@ public class SyntaxTextPanel extends JPanel {
           Theme.load(
               getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/dark.xml"));
       theme.apply(textArea);
+      // Apply custom style overrides after loading the theme.
+      customizeHighlighting(textArea);
     } catch (Exception e) {
       // Fallback to default theme if there's an issue
     }
 
+    addDirtyStateListener();
     RTextScrollPane scrollPane = new RTextScrollPane(textArea);
     add(scrollPane, BorderLayout.CENTER);
+  }
+
+  private void addDirtyStateListener() {
+    if (dirtyStateListener == null) {
+      dirtyStateListener =
+          new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+              handleFirstEdit();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+              handleFirstEdit();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+              handleFirstEdit();
+            }
+          };
+    }
+    textArea.getDocument().addDocumentListener(dirtyStateListener);
+  }
+
+  private void handleFirstEdit() {
+    onDirtyStateChange.accept(true);
+    // Remove the listener after the first edit for performance.
+    // The panel is now dirty until explicitly saved or reverted.
+    textArea.getDocument().removeDocumentListener(dirtyStateListener);
+  }
+
+  /** Removes distracting highlighting of dots in C# files. */
+  private void customizeHighlighting(RSyntaxTextArea textArea) {
+    // Only apply this customization for C# files.
+    if (SyntaxConstants.SYNTAX_STYLE_CSHARP.equals(textArea.getSyntaxEditingStyle())) {
+      SyntaxScheme scheme = textArea.getSyntaxScheme();
+
+      // Get the default text color and background color from the theme.
+      Color defaultForegroundColor = scheme.getStyle(Token.IDENTIFIER).foreground;
+      Color defaultBackgroundColor = textArea.getBackground();
+
+      // Get the style for the separator token (which handles the dot).
+      Style separatorStyle = scheme.getStyle(Token.SEPARATOR);
+
+      // Set both foreground and background to the default editor colors.
+      separatorStyle.foreground = defaultForegroundColor;
+      separatorStyle.background = defaultBackgroundColor;
+    }
+  }
+
+  public String getText() {
+    return textArea.getText();
+  }
+
+  public void markAsSaved() {
+    this.savedContent = textArea.getText();
+    textArea.discardAllEdits(); // Clear undo/redo history on save
+    onDirtyStateChange.accept(false); // Mark as not dirty
+    addDirtyStateListener(); // Start listening for the next edit
+  }
+
+  public void revert() {
+    textArea.getDocument().removeDocumentListener(dirtyStateListener);
+    textArea.setText(this.savedContent);
+    textArea.discardAllEdits(); // Clear undo/redo history on revert
+    onDirtyStateChange.accept(false); // Mark as not dirty
+    addDirtyStateListener(); // Start listening for the next edit
   }
 
   private void setSyntaxStyle(RSyntaxTextArea textArea, String extension) {

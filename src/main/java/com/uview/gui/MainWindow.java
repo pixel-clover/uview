@@ -4,6 +4,7 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.uview.App;
 import com.uview.core.SettingsManager;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -11,6 +12,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,9 +59,17 @@ public class MainWindow extends JFrame {
   /** Constructs the main window and initializes its components. */
   public MainWindow() {
     super("UView");
-    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // We will handle the close operation
     setSize(800, 600);
     setLocationRelativeTo(null);
+
+    addWindowListener(
+        new WindowAdapter() {
+          @Override
+          public void windowClosing(WindowEvent e) {
+            handleExit();
+          }
+        });
 
     setJMenuBar(createMenuBar());
 
@@ -199,7 +210,7 @@ public class MainWindow extends JFrame {
     fileMenu.add(new JSeparator());
 
     JMenuItem exitMenuItem = new JMenuItem("Exit");
-    exitMenuItem.addActionListener(e -> System.exit(0));
+    exitMenuItem.addActionListener(e -> handleExit());
     fileMenu.add(exitMenuItem);
 
     JMenu helpMenu = new JMenu("Help");
@@ -295,6 +306,22 @@ public class MainWindow extends JFrame {
   }
 
   private void openPackage(File file) {
+    // Check if the file is already open in another tab.
+    if (file != null) {
+      for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+        Component comp = tabbedPane.getComponentAt(i);
+        if (comp instanceof PackageViewPanel panel) {
+          File openFile = panel.getPackageFile();
+          // Compare absolute paths to see if the file is already open.
+          if (openFile != null && openFile.getAbsolutePath().equals(file.getAbsolutePath())) {
+            tabbedPane.setSelectedIndex(i); // Switch to the existing tab.
+            toFront(); // Bring the window to the front.
+            return; // Stop here, don't open a new tab.
+          }
+        }
+      }
+    }
+
     setWorking(true, "Loading...");
     PackageViewPanel newPanel = new PackageViewPanel(this, file, settingsManager);
     newPanel.loadPackage(
@@ -345,22 +372,50 @@ public class MainWindow extends JFrame {
     }
   }
 
-  private void closePackage() {
+  private boolean confirmAndSaveChanges() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
-
-    if (currentPanel.getPackageManager().isModified()) {
-      int result =
-          JOptionPane.showConfirmDialog(
-              this,
-              "The current package has unsaved changes. Do you want to save them?",
-              "Unsaved Changes",
-              JOptionPane.YES_NO_CANCEL_OPTION,
-              JOptionPane.WARNING_MESSAGE);
-      if (result == JOptionPane.CANCEL_OPTION) return;
-      if (result == JOptionPane.YES_OPTION) saveFile();
+    if (currentPanel == null || !currentPanel.getPackageManager().isModified()) {
+      return true; // No changes to save, proceed.
     }
-    tabbedPane.remove(tabbedPane.getSelectedIndex());
+
+    int result =
+        JOptionPane.showConfirmDialog(
+            this,
+            "The package '"
+                + currentPanel.getTabTitle().replace("*", "")
+                + "' has unsaved changes. Do you want to save them?",
+            "Unsaved Changes",
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE);
+
+    if (result == JOptionPane.CANCEL_OPTION) {
+      return false; // User cancelled the action.
+    }
+    if (result == JOptionPane.YES_OPTION) {
+      saveFile(); // Save the changes.
+    }
+    return true; // Proceed with closing (either saved or chose not to).
+  }
+
+  void closePackage() {
+    if (confirmAndSaveChanges()) {
+      int selectedIndex = tabbedPane.getSelectedIndex();
+      if (selectedIndex != -1) {
+        tabbedPane.remove(selectedIndex);
+      }
+    }
+  }
+
+  private void handleExit() {
+    // Iterate through all tabs and check for unsaved changes.
+    for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+      tabbedPane.setSelectedIndex(i);
+      if (!confirmAndSaveChanges()) {
+        return; // If user cancels at any point, abort the exit.
+      }
+    }
+    dispose(); // Close the window
+    System.exit(0); // Terminate the application
   }
 
   private void savePackageInBackground(PackageViewPanel panel, File file) {
@@ -428,7 +483,7 @@ public class MainWindow extends JFrame {
     worker.execute();
   }
 
-  private void updateState() {
+  void updateState() {
     PackageViewPanel currentPanel = getCurrentPanel();
     boolean hasPanel = currentPanel != null;
 

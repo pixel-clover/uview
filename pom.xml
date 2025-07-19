@@ -6,12 +6,12 @@
 
   <groupId>com.uview</groupId>
   <artifactId>uview</artifactId>
-  <version>0.1.0-b.1</version>
+  <version>0.1.0-b.2</version>
   <packaging>jar</packaging>
 
   <name>UView</name>
   <description>A desktop application for viewing, extracting, and modifying Unity package files.</description>
-  <url>https://github.com/habedi/uview</url>
+  <url>https://github.com/pixel-clover/uview</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
