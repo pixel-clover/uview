@@ -6,6 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.prefs.Preferences;
 
+/**
+ * Manages persistent application settings using the Java Preferences API. This class handles
+ * storing and retrieving user preferences like the last used directory and recently opened files.
+ */
 public class SettingsManager {
 
   private static final int MAX_RECENT_FILES = 5;
@@ -14,8 +18,22 @@ public class SettingsManager {
 
   private final Preferences prefs;
 
+  /**
+   * Constructs a settings manager using the default application preferences node. This is intended
+   * for use by the main application.
+   */
   public SettingsManager() {
-    this.prefs = Preferences.userNodeForPackage(App.class);
+    this(Preferences.userNodeForPackage(App.class));
+  }
+
+  /**
+   * Constructs a settings manager using a specific preferences node. This is intended for testing
+   * to allow for dependency injection and isolation.
+   *
+   * @param prefs The preferences node to use for storing and retrieving settings.
+   */
+  public SettingsManager(Preferences prefs) {
+    this.prefs = prefs;
   }
 
   public File getLastDirectory() {

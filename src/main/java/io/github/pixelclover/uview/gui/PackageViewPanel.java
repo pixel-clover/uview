@@ -295,7 +295,7 @@ public class PackageViewPanel extends JPanel {
         new SwingWorker<>() {
           @Override
           protected Void doInBackground() throws Exception {
-            Collection<io.github.pixelclover.uview.model.UnityAsset> assetsToExtract;
+            Collection<UnityAsset> assetsToExtract;
             String pathPrefixToStrip;
             if (entry instanceof TreeEntry.AssetEntry assetEntry) {
               assetsToExtract = List.of(assetEntry.asset());
@@ -340,13 +340,11 @@ public class PackageViewPanel extends JPanel {
       Runnable onSaveCallback =
           () -> {
             refreshTree();
-            if (owner instanceof MainWindow) {
-              ((MainWindow) owner).updateState();
-            }
+            // The owner is always the MainWindow, so this cast is safe.
+            ((MainWindow) owner).updateState();
           };
-      AssetViewerFrame viewer =
-          new AssetViewerFrame((JFrame) owner, entry.asset(), packageManager, onSaveCallback);
-      viewer.setVisible(true);
+      // --- MODIFIED: Call the manager method on MainWindow ---
+      ((MainWindow) owner).showAssetViewer(entry.asset(), packageManager, onSaveCallback);
     }
   }
 
@@ -363,14 +361,11 @@ public class PackageViewPanel extends JPanel {
       Runnable onSaveCallback =
           () -> {
             refreshTree();
-            if (owner instanceof MainWindow) {
-              ((MainWindow) owner).updateState();
-            }
+            ((MainWindow) owner).updateState();
           };
 
-      MetaEditorFrame editor =
-          new MetaEditorFrame((JFrame) owner, entry.asset(), packageManager, onSaveCallback);
-      editor.setVisible(true);
+      // --- MODIFIED: Call the manager method on MainWindow ---
+      ((MainWindow) owner).showMetaEditor(entry.asset(), packageManager, onSaveCallback);
     }
   }
 

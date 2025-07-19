@@ -1,9 +1,7 @@
 package io.github.pixelclover.uview.core;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-import io.github.pixelclover.uview.App;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -23,9 +21,12 @@ class SettingsManagerTest {
 
   @BeforeEach
   void setUp() throws BackingStoreException {
-    settingsManager = new SettingsManager();
-    prefs = Preferences.userNodeForPackage(App.class);
-    // FIX: Clear preferences BEFORE each test to ensure a clean state.
+    // Use a unique preference node path just for this test.
+    // This isolates the test from the actual application settings.
+    prefs = Preferences.userRoot().node("/io/github/pixelclover/uview/test_prefs");
+    settingsManager = new SettingsManager(prefs); // Inject the test-specific preferences
+
+    // Clear preferences BEFORE each test to ensure a clean state.
     prefs.clear();
   }
 
@@ -37,7 +38,7 @@ class SettingsManagerTest {
 
   @Test
   void getLastDirectory_shouldReturnDefaultWhenNotSet() throws IOException {
-    // FIX: The fallback is `new File(".")`. We should compare its canonical path.
+    // The fallback is `new File(".")`. We should compare its canonical path.
     File expectedDefault = new File(".");
     assertEquals(
         expectedDefault.getCanonicalPath(), settingsManager.getLastDirectory().getCanonicalPath());

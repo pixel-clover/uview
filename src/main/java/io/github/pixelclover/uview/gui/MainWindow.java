@@ -2,8 +2,14 @@ package io.github.pixelclover.uview.gui;
 
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import io.github.pixelclover.uview.App;
+import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.core.SettingsManager;
-import java.awt.*;
+import io.github.pixelclover.uview.model.UnityAsset;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseAdapter;
@@ -14,9 +20,28 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSeparator;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
+import javax.swing.TransferHandler;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -26,6 +51,11 @@ public class MainWindow extends JFrame {
 
   private final SettingsManager settingsManager = new SettingsManager();
   private final JTabbedPane tabbedPane;
+
+  // --- ADDED: Maps to track open editor/viewer frames ---
+  private final Map<String, JFrame> openAssetViewers = new HashMap<>();
+  private final Map<String, JDialog> openMetaEditors = new HashMap<>();
+
   private JMenuItem saveMenuItem;
   private JMenuItem saveAsMenuItem;
   private JMenuItem closeMenuItem;
@@ -63,11 +93,104 @@ public class MainWindow extends JFrame {
     updateState();
   }
 
-  private static String formatSize(long bytes) {
-    if (bytes < 1024) return bytes + " B";
-    int exp = (int) (Math.log(bytes) / Math.log(1024));
-    char pre = "KMGTPE".charAt(exp - 1);
-    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
+  // --- ADDED: Method to show the asset viewer ---
+  /**
+   * Shows the asset viewer for a given asset. If a viewer for this asset is already open, it brings
+   * that window to the front. Otherwise, it creates a new viewer.
+   *
+   * @param asset The asset to view.
+   * @param packageManager The package manager instance.
+   * @param onSaveCallback A callback to run when the asset is modified.
+   */
+  public void showAssetViewer(
+      UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
+    String assetPath = asset.assetPath();
+    if (openAssetViewers.containsKey(assetPath)) {
+      JFrame frame = openAssetViewers.get(assetPath);
+      frame.toFront();
+      frame.requestFocus();
+    } else {
+      AssetViewerFrame viewer = new AssetViewerFrame(this, asset, packageManager, onSaveCallback);
+      viewer.addWindowListener(
+          new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+              openAssetViewers.remove(assetPath);
+            }
+          });
+      openAssetViewers.put(assetPath, viewer);
+      viewer.setVisible(true);
+    }
+  }
+
+  // --- ADDED: Method to show the meta editor ---
+  /**
+   * Shows the meta editor for a given asset. If an editor for this asset is already open, it brings
+   * that window to the front. Otherwise, it creates a new editor.
+   *
+   * @param asset The asset whose metadata is to be edited.
+   * @param packageManager The package manager instance.
+   * @param onSaveCallback A callback to run when the metadata is modified.
+   */
+  public void showMetaEditor(
+      UnityAsset asset, PackageManager packageManager, Runnable onSaveCallback) {
+    String assetPath = asset.assetPath();
+    if (openMetaEditors.containsKey(assetPath)) {
+      JDialog dialog = openMetaEditors.get(assetPath);
+      dialog.toFront();
+      dialog.requestFocus();
+    } else {
+      MetaEditorFrame editor = new MetaEditorFrame(this, asset, packageManager, onSaveCallback);
+      editor.addWindowListener(
+          new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+              openMetaEditors.remove(assetPath);
+            }
+          });
+      openMetaEditors.put(assetPath, editor);
+      editor.setVisible(true);
+    }
+  }
+
+  private class FileDropHandler extends TransferHandler {
+    @Override
+    public boolean canImport(TransferSupport support) {
+      if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+        return false;
+      }
+      try {
+        Transferable t = support.getTransferable();
+        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+        for (File file : files) {
+          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
+            return true; // Accept drop if at least one unitypackage is present
+          }
+        }
+      } catch (Exception e) {
+        return false;
+      }
+      return false;
+    }
+
+    @Override
+    public boolean importData(TransferSupport support) {
+      if (!canImport(support)) {
+        return false;
+      }
+      try {
+        Transferable t = support.getTransferable();
+        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
+        for (File file : files) {
+          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
+            openPackage(file);
+          }
+        }
+        return true;
+      } catch (Exception e) {
+        return false;
+      }
+    }
   }
 
   private JPanel createStatusBar() {
@@ -98,6 +221,13 @@ public class MainWindow extends JFrame {
     Runtime runtime = Runtime.getRuntime();
     long usedMemory = runtime.totalMemory() - runtime.freeMemory();
     memoryUsageLabel.setText(String.format("Mem: %s", formatSize(usedMemory)));
+  }
+
+  private static String formatSize(long bytes) {
+    if (bytes < 1024) return bytes + " B";
+    int exp = (int) (Math.log(bytes) / Math.log(1024));
+    char pre = "KMGTPE".charAt(exp - 1);
+    return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
   }
 
   private JMenuBar createMenuBar() {
@@ -198,7 +328,7 @@ public class MainWindow extends JFrame {
   private String getAppVersion() {
     try (InputStream is =
         App.class.getResourceAsStream(
-            "/META-INF/maven/io.github.pixelclover.uview/uview/pom.properties")) {
+            "/META-INF/maven/io.github.pixelclover/uview/pom.properties")) {
       if (is == null) return "N/A";
       Properties props = new Properties();
       props.load(is);
@@ -462,46 +592,6 @@ public class MainWindow extends JFrame {
     setCursor(working ? Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR) : Cursor.getDefaultCursor());
     if (status != null) {
       statusLabel.setText(status);
-    }
-  }
-
-  private class FileDropHandler extends TransferHandler {
-    @Override
-    public boolean canImport(TransferSupport support) {
-      if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
-        return false;
-      }
-      try {
-        Transferable t = support.getTransferable();
-        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-        for (File file : files) {
-          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
-            return true; // Accept drop if at least one unitypackage is present
-          }
-        }
-      } catch (Exception e) {
-        return false;
-      }
-      return false;
-    }
-
-    @Override
-    public boolean importData(TransferSupport support) {
-      if (!canImport(support)) {
-        return false;
-      }
-      try {
-        Transferable t = support.getTransferable();
-        List<File> files = (List<File>) t.getTransferData(DataFlavor.javaFileListFlavor);
-        for (File file : files) {
-          if (file.isFile() && file.getName().toLowerCase().endsWith(".unitypackage")) {
-            openPackage(file);
-          }
-        }
-        return true;
-      } catch (Exception e) {
-        return false;
-      }
     }
   }
 }
