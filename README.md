@@ -93,4 +93,4 @@ Box logo is from [SVG Repo](https://www.svgrepo.com/svg/366323/package-inspect).
 
 ### License
 
-UView is available under the Apache License, Version 2.0 ([LICENSE](LICENSE)).
+UView is available under the Apache License, Version 2.0 (see [LICENSE](LICENSE)).
