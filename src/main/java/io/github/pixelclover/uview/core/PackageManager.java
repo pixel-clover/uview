@@ -20,18 +20,30 @@ import org.apache.logging.log4j.Logger;
  */
 public class PackageManager {
   private static final Logger LOGGER = LogManager.getLogger(PackageManager.class);
-  private static final long MAX_ASSET_SIZE_BYTES = 512 * 1024 * 1024; // 512 MB limit
-  private final PackageIO packageIO;
+  private static final long DEFAULT_MAX_ASSET_SIZE_BYTES = 512 * 1024 * 1024; // 512 MB limit
+  private final PackageIO packageIo;
+  private final long maxAssetSizeBytes;
   private UnityPackage activePackage = new UnityPackage();
   private boolean isModified = false;
 
   /**
-   * Constructs a PackageManager with a given PackageIO handler.
+   * Constructs a PackageManager with a given PackageIO handler and default max asset size.
    *
-   * @param packageIO The I/O handler for reading and writing package files.
+   * @param packageIo The I/O handler for reading and writing package files.
    */
-  public PackageManager(PackageIO packageIO) {
-    this.packageIO = packageIO;
+  public PackageManager(PackageIO packageIo) {
+    this(packageIo, DEFAULT_MAX_ASSET_SIZE_BYTES);
+  }
+
+  /**
+   * Constructs a PackageManager with a given PackageIO handler and a custom max asset size.
+   *
+   * @param packageIo The I/O handler for reading and writing package files.
+   * @param maxAssetSizeBytes The maximum allowed size for an asset in bytes.
+   */
+  public PackageManager(PackageIO packageIo, long maxAssetSizeBytes) {
+    this.packageIo = packageIo;
+    this.maxAssetSizeBytes = maxAssetSizeBytes;
   }
 
   /** Creates a new, empty package, discarding any existing active package data. */
@@ -47,7 +59,7 @@ public class PackageManager {
    * @throws IOException If an error occurs during file loading.
    */
   public void loadPackage(File packageFile) throws IOException {
-    activePackage = packageIO.load(packageFile);
+    activePackage = packageIo.load(packageFile);
     isModified = false;
     LOGGER.info("Loaded package: {}", packageFile.getAbsolutePath());
   }
@@ -59,7 +71,7 @@ public class PackageManager {
    * @throws IOException If an error occurs during file saving.
    */
   public void savePackage(File packageFile) throws IOException {
-    packageIO.save(activePackage, packageFile);
+    packageIo.save(activePackage, packageFile);
     isModified = false;
     LOGGER.info("Saved package: {}", packageFile.getAbsolutePath());
   }
@@ -110,11 +122,11 @@ public class PackageManager {
    * @throws IOException If the file is too large or cannot be read.
    */
   public void addAsset(Path sourceFile, String assetPath) throws IOException {
-    if (Files.size(sourceFile) > MAX_ASSET_SIZE_BYTES) {
+    if (Files.size(sourceFile) > maxAssetSizeBytes) {
       throw new IOException(
           String.format(
               "File is too large (%.1f MB). Maximum allowed size is %d MB.",
-              Files.size(sourceFile) / (1024.0 * 1024.0), MAX_ASSET_SIZE_BYTES / (1024 * 1024)));
+              Files.size(sourceFile) / (1024.0 * 1024.0), maxAssetSizeBytes / (1024 * 1024)));
     }
     byte[] content = Files.readAllBytes(sourceFile);
     String metaGuid = java.util.UUID.randomUUID().toString().replace("-", "");

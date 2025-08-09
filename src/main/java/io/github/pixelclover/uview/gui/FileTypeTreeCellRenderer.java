@@ -1,8 +1,8 @@
 package io.github.pixelclover.uview.gui;
 
 import io.github.pixelclover.uview.gui.tree.TreeEntry;
-import java.awt.*;
-import javax.swing.*;
+import java.awt.Component;
+import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 

@@ -3,7 +3,7 @@ package io.github.pixelclover.uview.gui;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.*;
+import javax.swing.Icon;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

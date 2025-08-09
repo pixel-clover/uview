@@ -116,4 +116,69 @@ class PackageManagerTest {
     assertEquals(
         "Assets/Scripts/Player/PlayerController.cs", csResults.iterator().next().assetPath());
   }
+
+  @Test
+  void addAssetThrowsExceptionForLargeFile() throws IOException {
+    Path largeFile = tempDir.resolve("large-file.bin");
+    Files.write(largeFile, new byte[20]); // 20 bytes
+
+    // Create a new PackageManager with a tiny size limit for this test
+    PackageManager sizeLimitedManager = new PackageManager(new PackageIO(), 10); // 10 byte limit
+
+    IOException e =
+        assertThrows(
+            IOException.class,
+            () -> sizeLimitedManager.addAsset(largeFile, "Assets/large-file.bin"),
+            "Should throw IOException for file exceeding max size.");
+    assertTrue(
+        e.getMessage().startsWith("File is too large"),
+        "Exception message should indicate file is too large.");
+  }
+
+  @Test
+  void updateAssetContentUpdatesTheAsset() throws IOException {
+    String assetPath = "Assets/MyFile.txt";
+    packageManager.addAsset(sourceFile, assetPath);
+    assertEquals("test", new String(packageManager.getAssets().iterator().next().content()));
+
+    byte[] newContent = "updated content".getBytes(StandardCharsets.UTF_8);
+    packageManager.updateAssetContent(assetPath, newContent);
+
+    assertTrue(packageManager.isModified());
+    assertEquals(1, packageManager.getAssets().size());
+    assertEquals(
+        "updated content", new String(packageManager.getAssets().iterator().next().content()));
+  }
+
+  @Test
+  void updateAssetMetaMarksPackageAsModified() throws IOException {
+    String assetPath = "Assets/MyFile.txt";
+    packageManager.addAsset(sourceFile, assetPath);
+    packageManager.savePackage(new File("dummy.unitypackage")); // Reset modified flag
+    assertFalse(packageManager.isModified());
+
+    byte[] newMetaContent = "new meta".getBytes(StandardCharsets.UTF_8);
+    packageManager.updateAssetMeta(assetPath, newMetaContent);
+
+    assertTrue(packageManager.isModified());
+    assertEquals(
+        "new meta", new String(packageManager.getAssets().iterator().next().metaContent()));
+  }
+
+  @Test
+  void removeDirectoryMarksPackageAsModifiedAndRemovesAssets() throws IOException {
+    packageManager.addAsset(sourceFile, "Assets/MyDir/File1.txt");
+    packageManager.addAsset(sourceFile2, "Assets/MyDir/SubDir/File2.txt");
+    packageManager.addAsset(sourceFile, "Assets/Other/File3.txt");
+    packageManager.savePackage(new File("dummy.unitypackage")); // Reset modified flag
+    assertFalse(packageManager.isModified());
+    assertEquals(3, packageManager.getAssets().size());
+
+    packageManager.removeDirectory("Assets/MyDir");
+
+    assertTrue(packageManager.isModified());
+    assertEquals(1, packageManager.getAssets().size());
+    assertEquals(
+        "Assets/Other/File3.txt", packageManager.getAssets().iterator().next().assetPath());
+  }
 }

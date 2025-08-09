@@ -5,7 +5,7 @@ import com.formdev.flatlaf.extras.FlatInspector;
 import com.formdev.flatlaf.extras.FlatUIDefaultsInspector;
 import io.github.pixelclover.uview.gui.FontManager;
 import io.github.pixelclover.uview.gui.MainWindow;
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 
 /** The main entry point for the UView application. */
 public final class App {

@@ -2,7 +2,10 @@ package io.github.pixelclover.uview.gui;
 
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -11,7 +14,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Set;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 /**
  * A frame for viewing and potentially editing a single {@link UnityAsset}. It determines the
@@ -177,8 +189,6 @@ public class AssetViewerFrame extends JFrame {
   }
 
   private JPanel createTextEditorPanel(UnityAsset asset) {
-    JPanel editorPanel = new JPanel(new BorderLayout(0, 5));
-
     JButton saveButton = new JButton("Save");
     saveButton.setEnabled(false);
     JButton revertButton = new JButton("Revert");
@@ -206,6 +216,7 @@ public class AssetViewerFrame extends JFrame {
     buttonPanel.add(revertButton);
     buttonPanel.add(saveButton);
 
+    JPanel editorPanel = new JPanel(new BorderLayout(0, 5));
     editorPanel.add(syntaxTextPanel, BorderLayout.CENTER);
     editorPanel.add(buttonPanel, BorderLayout.SOUTH);
 

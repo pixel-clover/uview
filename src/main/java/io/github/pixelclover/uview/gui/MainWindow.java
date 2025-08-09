@@ -7,7 +7,12 @@ import io.github.pixelclover.uview.App;
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.core.SettingsManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.MouseAdapter;
@@ -18,10 +23,33 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
-import javax.swing.*;
+import java.util.Map;
+import java.util.Properties;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JSeparator;
+import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.Timer;
+import javax.swing.TransferHandler;
+import javax.swing.UIManager;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -79,7 +107,9 @@ public class MainWindow extends JFrame {
   }
 
   private static String formatSize(long bytes) {
-    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024) {
+      return bytes + " B";
+    }
     int exp = (int) (Math.log(bytes) / Math.log(1024));
     char pre = "KMGTPE".charAt(exp - 1);
     return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
@@ -241,7 +271,8 @@ public class MainWindow extends JFrame {
           settingsManager.resetUiSettings();
           JOptionPane.showMessageDialog(
               this,
-              "UI settings have been reset.\nPlease restart the application for all changes to take effect.",
+              "UI settings have been reset.\nPlease restart the application for all changes to take"
+                  + " effect.",
               "Restart Required",
               JOptionPane.INFORMATION_MESSAGE);
         });
@@ -354,7 +385,8 @@ public class MainWindow extends JFrame {
             + version
             + "</p>"
             + "<p>A desktop tool for viewing and modifying Unity packages.</p>"
-            + "<p><b>GitHub:</b> <a href='https://github.com/habedi/uview'>https://github.com/habedi/uview</a></p>"
+            + "<p><b>GitHub:</b> <a href='https://github.com/habedi/uview'>"
+            + "https://github.com/habedi/uview</a></p>"
             + "</body></html>";
 
     java.net.URL iconUrl = App.class.getResource("/logo.svg");
@@ -380,7 +412,9 @@ public class MainWindow extends JFrame {
     try (InputStream is =
         App.class.getResourceAsStream(
             "/META-INF/maven/io.github.pixelclover/uview/pom.properties")) {
-      if (is == null) return "N/A";
+      if (is == null) {
+        return "N/A";
+      }
       Properties props = new Properties();
       props.load(is);
       return props.getProperty("version", "N/A");
@@ -467,7 +501,9 @@ public class MainWindow extends JFrame {
 
   private void saveFile() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
+    if (currentPanel == null) {
+      return;
+    }
     if (currentPanel.getPackageFile() == null) {
       saveFileAs();
     } else {
@@ -477,7 +513,9 @@ public class MainWindow extends JFrame {
 
   private void saveFileAs() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
+    if (currentPanel == null) {
+      return;
+    }
 
     JFileChooser chooser = createFileChooser("Save Unity Package As...");
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
@@ -560,7 +598,9 @@ public class MainWindow extends JFrame {
 
   private void extractAll() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
+    if (currentPanel == null) {
+      return;
+    }
 
     JFileChooser chooser = createFileChooser("Select Directory to Extract All Assets");
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);

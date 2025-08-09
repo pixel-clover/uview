@@ -1,7 +1,7 @@
 package io.github.pixelclover.uview.core;
 
 import io.github.pixelclover.uview.App;
-import java.awt.*;
+import java.awt.Font;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
