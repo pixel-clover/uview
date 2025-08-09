@@ -1,8 +1,9 @@
 package io.github.pixelclover.uview.gui;
 
-import com.formdev.flatlaf.FlatDarkLaf;
-import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.formdev.flatlaf.util.SystemInfo;
 import io.github.pixelclover.uview.App;
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.core.SettingsManager;
@@ -116,28 +117,35 @@ public class MainWindow extends JFrame {
   }
 
   private void loadAndApplySettings() {
-    applyTheme(settingsManager.isDarkTheme());
+    applyTheme(settingsManager.getTheme(), false);
     updateUiFont(settingsManager.getFontFamily(), settingsManager.getFontSize(), false);
   }
 
-  private void applyTheme(boolean useDarkTheme) {
+  private void applyTheme(String theme, boolean save) {
     try {
-      if (useDarkTheme) {
-        UIManager.setLookAndFeel(new FlatDarkLaf());
-      } else {
-        UIManager.setLookAndFeel(new FlatLightLaf());
+      if (SettingsManager.THEME_DARK.equals(theme)) {
+        UIManager.setLookAndFeel(new FlatDarculaLaf());
+      } else if (SettingsManager.THEME_LIGHT.equals(theme)) {
+        UIManager.setLookAndFeel(new FlatIntelliJLaf());
+      } else { // System theme
+        if (SystemInfo.isWindows) {
+          UIManager.setLookAndFeel(new FlatIntelliJLaf());
+        } else if (SystemInfo.isMacOS) {
+          UIManager.setLookAndFeel(new FlatIntelliJLaf());
+        } else if (SystemInfo.isLinux) {
+          UIManager.setLookAndFeel(new FlatDarculaLaf());
+        } else {
+          UIManager.setLookAndFeel(new FlatIntelliJLaf());
+        }
+      }
+      if (save) {
+        settingsManager.setTheme(theme);
       }
       SwingUtilities.updateComponentTreeUI(this);
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(
           this, "Failed to set theme: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
-  }
-
-  private void toggleTheme() {
-    boolean newIsDark = !settingsManager.isDarkTheme();
-    settingsManager.setDarkTheme(newIsDark);
-    applyTheme(newIsDark);
   }
 
   private void updateUiFont(String family, int size, boolean save) {
@@ -222,9 +230,22 @@ public class MainWindow extends JFrame {
     JMenu settingsMenu = new JMenu("Settings");
     menuBar.add(settingsMenu);
 
-    JMenuItem toggleThemeItem = new JMenuItem("Toggle Light/Dark Theme");
-    toggleThemeItem.addActionListener(e -> toggleTheme());
-    settingsMenu.add(toggleThemeItem);
+    JMenu themeMenu = new JMenu("Theme");
+    settingsMenu.add(themeMenu);
+
+    ButtonGroup themeGroup = new ButtonGroup();
+    String currentTheme = settingsManager.getTheme();
+
+    String[] themes = {
+      SettingsManager.THEME_LIGHT, SettingsManager.THEME_DARK, SettingsManager.THEME_SYSTEM
+    };
+    for (String theme : themes) {
+      JRadioButtonMenuItem themeItem = new JRadioButtonMenuItem(theme);
+      themeItem.setSelected(theme.equals(currentTheme));
+      themeItem.addActionListener(e -> applyTheme(theme, true));
+      themeGroup.add(themeItem);
+      themeMenu.add(themeItem);
+    }
 
     settingsMenu.addSeparator();
 
