@@ -4,11 +4,11 @@ import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import com.formdev.flatlaf.util.SystemInfo;
-import io.github.pixelclover.uview.App;
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.core.SettingsManager;
 import io.github.pixelclover.uview.model.UnityAsset;
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Desktop;
@@ -16,24 +16,20 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.Icon;
+import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -46,6 +42,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JSeparator;
 import javax.swing.JTabbedPane;
+import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
@@ -64,6 +61,10 @@ public class MainWindow extends JFrame {
 
   private final SettingsManager settingsManager = new SettingsManager();
   private final JTabbedPane tabbedPane;
+  private final JPanel contentPanel;
+  private final CardLayout cardLayout;
+  private static final String WELCOME_PANEL = "WelcomePanel";
+  private static final String TABBED_PANE = "TabbedPane";
 
   private final Map<String, JFrame> openAssetViewers = new HashMap<>();
   private final Map<String, JDialog> openMetaEditors = new HashMap<>();
@@ -77,6 +78,8 @@ public class MainWindow extends JFrame {
   private JLabel fileCountLabel;
   private JLabel packageSizeLabel;
   private JLabel memoryUsageLabel;
+  private JButton saveButton;
+  private JButton extractAllButton;
 
   /** Constructs the main application window. */
   public MainWindow() {
@@ -96,15 +99,27 @@ public class MainWindow extends JFrame {
         });
 
     setJMenuBar(createMenuBar());
+    add(createToolBar(), BorderLayout.NORTH);
+
+    cardLayout = new CardLayout();
+    contentPanel = new JPanel(cardLayout);
+
+    WelcomePanel welcomePanel = new WelcomePanel(this::newPackage, this::openFile);
+    contentPanel.add(welcomePanel, WELCOME_PANEL);
 
     tabbedPane = new JTabbedPane();
     tabbedPane.addChangeListener(e -> updateState());
+    contentPanel.add(tabbedPane, TABBED_PANE);
 
     setTransferHandler(new FileDropHandler());
 
-    add(tabbedPane, BorderLayout.CENTER);
+    add(contentPanel, BorderLayout.CENTER);
     add(createStatusBar(), BorderLayout.SOUTH);
     updateState();
+  }
+
+  private Icon getIcon(String name) {
+    return new FlatSVGIcon("icons/tabler_v1/" + name + ".svg");
   }
 
   private static String formatSize(long bytes) {
@@ -179,11 +194,11 @@ public class MainWindow extends JFrame {
     JMenu fileMenu = new JMenu("File");
     menuBar.add(fileMenu);
 
-    JMenuItem newMenuItem = new JMenuItem("New Package");
+    JMenuItem newMenuItem = new JMenuItem("New Package", getIcon("file-plus"));
     newMenuItem.addActionListener(e -> newPackage());
     fileMenu.add(newMenuItem);
 
-    JMenuItem openMenuItem = new JMenuItem("Open...");
+    JMenuItem openMenuItem = new JMenuItem("Open...", getIcon("folder-open"));
     openMenuItem.addActionListener(e -> openFile());
     fileMenu.add(openMenuItem);
 
@@ -207,7 +222,7 @@ public class MainWindow extends JFrame {
 
     fileMenu.add(new JSeparator());
 
-    saveMenuItem = new JMenuItem("Save");
+    saveMenuItem = new JMenuItem("Save", getIcon("device-floppy"));
     saveMenuItem.addActionListener(e -> saveFile());
     fileMenu.add(saveMenuItem);
 
@@ -217,7 +232,7 @@ public class MainWindow extends JFrame {
 
     fileMenu.add(new JSeparator());
 
-    extractAllMenuItem = new JMenuItem("Extract All...");
+    extractAllMenuItem = new JMenuItem("Extract All...", getIcon("file_archive"));
     extractAllMenuItem.addActionListener(e -> extractAll());
     fileMenu.add(extractAllMenuItem);
 
@@ -306,6 +321,36 @@ public class MainWindow extends JFrame {
     helpMenu.add(aboutMenuItem);
 
     return menuBar;
+  }
+
+  private JToolBar createToolBar() {
+    JToolBar toolBar = new JToolBar();
+    toolBar.setFloatable(false);
+    toolBar.setRollover(true);
+
+    JButton newButton = new JButton(getIcon("file-plus"));
+    newButton.setToolTipText("New Package");
+    newButton.addActionListener(e -> newPackage());
+    toolBar.add(newButton);
+
+    JButton openButton = new JButton(getIcon("folder-open"));
+    openButton.setToolTipText("Open...");
+    openButton.addActionListener(e -> openFile());
+    toolBar.add(openButton);
+
+    saveButton = new JButton(getIcon("device-floppy"));
+    saveButton.setToolTipText("Save");
+    saveButton.addActionListener(e -> saveFile());
+    toolBar.add(saveButton);
+
+    toolBar.addSeparator();
+
+    extractAllButton = new JButton(getIcon("file_archive"));
+    extractAllButton.setToolTipText("Extract All...");
+    extractAllButton.addActionListener(e -> extractAll());
+    toolBar.add(extractAllButton);
+
+    return toolBar;
   }
 
   /**
@@ -397,51 +442,8 @@ public class MainWindow extends JFrame {
   }
 
   private void showAboutDialog() {
-    String version = getAppVersion();
-    String title = "About UView";
-    String message =
-        "<html><body style='width: 300px;'>"
-            + "<h2>UView</h2>"
-            + "<p><b>Version:</b> "
-            + version
-            + "</p>"
-            + "<p>A desktop tool for viewing and modifying Unity packages.</p>"
-            + "<p><b>GitHub:</b> <a href='https://github.com/habedi/uview'>"
-            + "https://github.com/habedi/uview</a></p>"
-            + "</body></html>";
-
-    java.net.URL iconUrl = App.class.getResource("/logo.svg");
-    Icon aboutIcon = (iconUrl != null) ? new FlatSVGIcon(iconUrl).derive(64, 64) : null;
-
-    JLabel messageLabel = new JLabel(message);
-    messageLabel.addMouseListener(
-        new MouseAdapter() {
-          public void mouseClicked(MouseEvent e) {
-            try {
-              Desktop.getDesktop().browse(new java.net.URI("https://github.com/habedi/uview"));
-            } catch (Exception ex) {
-              // Ignore
-            }
-          }
-        });
-
-    JOptionPane.showMessageDialog(
-        this, messageLabel, title, JOptionPane.INFORMATION_MESSAGE, aboutIcon);
-  }
-
-  private String getAppVersion() {
-    try (InputStream is =
-        App.class.getResourceAsStream(
-            "/META-INF/maven/io.github.pixelclover/uview/pom.properties")) {
-      if (is == null) {
-        return "N/A";
-      }
-      Properties props = new Properties();
-      props.load(is);
-      return props.getProperty("version", "N/A");
-    } catch (IOException e) {
-      return "N/A";
-    }
+    AboutDialog aboutDialog = new AboutDialog(this);
+    aboutDialog.setVisible(true);
   }
 
   private void populateRecentFilesMenu() {
@@ -672,11 +674,14 @@ public class MainWindow extends JFrame {
     boolean hasPanel = currentPanel != null;
 
     saveMenuItem.setEnabled(hasPanel && currentPanel.getPackageManager().isModified());
+    saveButton.setEnabled(hasPanel && currentPanel.getPackageManager().isModified());
     saveAsMenuItem.setEnabled(hasPanel);
     closeMenuItem.setEnabled(hasPanel);
     extractAllMenuItem.setEnabled(hasPanel);
+    extractAllButton.setEnabled(hasPanel);
 
     if (hasPanel) {
+      cardLayout.show(contentPanel, TABBED_PANE);
       int selectedIndex = tabbedPane.getSelectedIndex();
       tabbedPane.setTitleAt(selectedIndex, currentPanel.getTabTitle());
 
@@ -694,6 +699,7 @@ public class MainWindow extends JFrame {
         packageSizeLabel.setText("");
       }
     } else {
+      cardLayout.show(contentPanel, WELCOME_PANEL);
       setTitle("UView");
       statusLabel.setText("Ready");
       fileCountLabel.setText("");
