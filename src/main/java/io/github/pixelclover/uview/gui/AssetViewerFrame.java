@@ -3,7 +3,6 @@ package io.github.pixelclover.uview.gui;
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.model.UnityAsset;
 import java.awt.BorderLayout;
-import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.WindowAdapter;
@@ -21,7 +20,6 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -67,6 +65,7 @@ public class AssetViewerFrame extends JFrame {
   private final Runnable onSaveCallback;
   private PdfViewerPanel pdfPanel;
   private AudioPlayerPanel audioPanel;
+  private VideoPlayerPanel videoPanel;
 
   /**
    * Constructs a new AssetViewerFrame.
@@ -110,6 +109,9 @@ public class AssetViewerFrame extends JFrame {
             }
             if (audioPanel != null) {
               audioPanel.close();
+            }
+            if (videoPanel != null) {
+              videoPanel.stop();
             }
           }
         });
@@ -179,8 +181,20 @@ public class AssetViewerFrame extends JFrame {
         contentWrapperPanel.add(errorLabel, BorderLayout.CENTER);
       }
     } else if (VIDEO_EXTENSIONS.contains(extension)) {
-      handleMediaAsset(asset);
-      return null;
+      try {
+        File tempFile =
+            Files.createTempFile(
+                    "uview-preview-", asset.assetPath().replaceAll("[^a-zA-Z0-9.-]", "_"))
+                .toFile();
+        tempFile.deleteOnExit();
+        Files.write(tempFile.toPath(), asset.content());
+        this.videoPanel = new VideoPlayerPanel(asset, tempFile.toPath());
+        contentWrapperPanel.add(this.videoPanel, BorderLayout.CENTER);
+      } catch (IOException e) {
+        JLabel errorLabel = new JLabel("Failed to load video: " + e.getMessage());
+        errorLabel.setHorizontalAlignment(JLabel.CENTER);
+        contentWrapperPanel.add(errorLabel, BorderLayout.CENTER);
+      }
     } else {
       contentWrapperPanel.add(
           new JLabel("Binary content cannot be previewed."), BorderLayout.CENTER);
@@ -221,35 +235,6 @@ public class AssetViewerFrame extends JFrame {
     editorPanel.add(buttonPanel, BorderLayout.SOUTH);
 
     return editorPanel;
-  }
-
-  private void handleMediaAsset(UnityAsset asset) {
-    try {
-      File tempFile =
-          Files.createTempFile(
-                  "uview-preview-", asset.assetPath().replaceAll("[^a-zA-Z0-9.-]", "_"))
-              .toFile();
-      tempFile.deleteOnExit();
-      assert asset.content() != null;
-      Files.write(tempFile.toPath(), asset.content());
-
-      if (Desktop.isDesktopSupported()) {
-        Desktop.getDesktop().open(tempFile);
-      } else {
-        JOptionPane.showMessageDialog(
-            this,
-            "Cannot open media file automatically.\nIt has been saved to:\n"
-                + tempFile.getAbsolutePath(),
-            "Desktop Action Not Supported",
-            JOptionPane.WARNING_MESSAGE);
-      }
-    } catch (IOException e) {
-      JOptionPane.showMessageDialog(
-          this,
-          "Failed to create temporary file for preview: " + e.getMessage(),
-          "Error",
-          JOptionPane.ERROR_MESSAGE);
-    }
   }
 
   private String getFileExtension(String filename) {
