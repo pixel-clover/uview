@@ -1,7 +1,7 @@
 package io.github.pixelclover.uview.core;
 
 import io.github.pixelclover.uview.App;
-import java.awt.*;
+import java.awt.Font;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,11 @@ public class SettingsManager {
   private static final String LAST_DIRECTORY_KEY = "last_directory";
   private static final String RECENT_FILE_PREFIX = "recent_file_";
 
-  private static final String THEME_IS_DARK_KEY = "theme_is_dark";
+  private static final String THEME_KEY = "theme";
+  public static final String THEME_LIGHT = "Light";
+  public static final String THEME_DARK = "Dark";
+  public static final String THEME_SYSTEM = "System";
+
   private static final String FONT_SIZE_KEY = "font_size";
   private static final String FONT_FAMILY_KEY = "font_family";
   private static final int DEFAULT_FONT_SIZE = 12;
@@ -41,21 +45,21 @@ public class SettingsManager {
   }
 
   /**
-   * Checks if the dark theme is currently enabled.
+   * Gets the current theme.
    *
-   * @return true if dark theme is set, false otherwise.
+   * @return The current theme, e.g., "Light", "Dark", or "System".
    */
-  public boolean isDarkTheme() {
-    return prefs.getBoolean(THEME_IS_DARK_KEY, false);
+  public String getTheme() {
+    return prefs.get(THEME_KEY, THEME_SYSTEM);
   }
 
   /**
    * Sets the theme preference.
    *
-   * @param isDark true to enable dark theme, false for light theme.
+   * @param theme The theme to set, e.g., "Light", "Dark", or "System".
    */
-  public void setDarkTheme(boolean isDark) {
-    prefs.putBoolean(THEME_IS_DARK_KEY, isDark);
+  public void setTheme(String theme) {
+    prefs.put(THEME_KEY, theme);
   }
 
   /**
@@ -96,7 +100,9 @@ public class SettingsManager {
 
   /** Resets all UI-related settings (theme and font) to their default states. */
   public void resetUiSettings() {
-    prefs.remove(THEME_IS_DARK_KEY);
+    prefs.remove(THEME_KEY);
+    // For backward compatibility, remove the old key
+    prefs.remove("theme_is_dark");
     prefs.remove(FONT_SIZE_KEY);
     prefs.remove(FONT_FAMILY_KEY);
   }

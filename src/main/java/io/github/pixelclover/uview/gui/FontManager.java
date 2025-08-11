@@ -1,6 +1,9 @@
 package io.github.pixelclover.uview.gui;
 
-import java.awt.*;
+import java.awt.Font;
+import java.awt.FontFormatException;
+import java.awt.GraphicsEnvironment;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import org.apache.logging.log4j.LogManager;
@@ -29,7 +32,7 @@ public final class FontManager {
           LOGGER.error("Custom font not found at resource path: {}", path);
           continue;
         }
-        Font customFont = Font.createFont(Font.TRUETYPE_FONT, is);
+        Font customFont = Font.createFont(Font.TRUETYPE_FONT, new BufferedInputStream(is));
         GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(customFont);
         LOGGER.info("Successfully registered font: {}", customFont.getFontName());
       } catch (IOException | FontFormatException e) {

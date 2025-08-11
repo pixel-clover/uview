@@ -1,27 +1,53 @@
 package io.github.pixelclover.uview.gui;
 
-import com.formdev.flatlaf.FlatDarkLaf;
-import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
-import io.github.pixelclover.uview.App;
+import com.formdev.flatlaf.util.SystemInfo;
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.core.SettingsManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
-import javax.swing.*;
+import java.util.Map;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JSeparator;
+import javax.swing.JTabbedPane;
+import javax.swing.JToolBar;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.Timer;
+import javax.swing.TransferHandler;
+import javax.swing.UIManager;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -35,6 +61,10 @@ public class MainWindow extends JFrame {
 
   private final SettingsManager settingsManager = new SettingsManager();
   private final JTabbedPane tabbedPane;
+  private final JPanel contentPanel;
+  private final CardLayout cardLayout;
+  private static final String WELCOME_PANEL = "WelcomePanel";
+  private static final String TABBED_PANE = "TabbedPane";
 
   private final Map<String, JFrame> openAssetViewers = new HashMap<>();
   private final Map<String, JDialog> openMetaEditors = new HashMap<>();
@@ -48,6 +78,8 @@ public class MainWindow extends JFrame {
   private JLabel fileCountLabel;
   private JLabel packageSizeLabel;
   private JLabel memoryUsageLabel;
+  private JButton saveButton;
+  private JButton extractAllButton;
 
   /** Constructs the main application window. */
   public MainWindow() {
@@ -67,47 +99,68 @@ public class MainWindow extends JFrame {
         });
 
     setJMenuBar(createMenuBar());
+    add(createToolBar(), BorderLayout.NORTH);
+
+    cardLayout = new CardLayout();
+    contentPanel = new JPanel(cardLayout);
+
+    WelcomePanel welcomePanel = new WelcomePanel(this::newPackage, this::openFile);
+    contentPanel.add(welcomePanel, WELCOME_PANEL);
 
     tabbedPane = new JTabbedPane();
     tabbedPane.addChangeListener(e -> updateState());
+    contentPanel.add(tabbedPane, TABBED_PANE);
 
     setTransferHandler(new FileDropHandler());
 
-    add(tabbedPane, BorderLayout.CENTER);
+    add(contentPanel, BorderLayout.CENTER);
     add(createStatusBar(), BorderLayout.SOUTH);
     updateState();
   }
 
+  private Icon getIcon(String name) {
+    return new FlatSVGIcon("icons/tabler_v1/" + name + ".svg");
+  }
+
   private static String formatSize(long bytes) {
-    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024) {
+      return bytes + " B";
+    }
     int exp = (int) (Math.log(bytes) / Math.log(1024));
     char pre = "KMGTPE".charAt(exp - 1);
     return String.format("%.1f %sB", bytes / Math.pow(1024, exp), pre);
   }
 
   private void loadAndApplySettings() {
-    applyTheme(settingsManager.isDarkTheme());
+    applyTheme(settingsManager.getTheme(), false);
     updateUiFont(settingsManager.getFontFamily(), settingsManager.getFontSize(), false);
   }
 
-  private void applyTheme(boolean useDarkTheme) {
+  private void applyTheme(String theme, boolean save) {
     try {
-      if (useDarkTheme) {
-        UIManager.setLookAndFeel(new FlatDarkLaf());
-      } else {
-        UIManager.setLookAndFeel(new FlatLightLaf());
+      if (SettingsManager.THEME_DARK.equals(theme)) {
+        UIManager.setLookAndFeel(new FlatDarculaLaf());
+      } else if (SettingsManager.THEME_LIGHT.equals(theme)) {
+        UIManager.setLookAndFeel(new FlatIntelliJLaf());
+      } else { // System theme
+        if (SystemInfo.isWindows) {
+          UIManager.setLookAndFeel(new FlatIntelliJLaf());
+        } else if (SystemInfo.isMacOS) {
+          UIManager.setLookAndFeel(new FlatIntelliJLaf());
+        } else if (SystemInfo.isLinux) {
+          UIManager.setLookAndFeel(new FlatDarculaLaf());
+        } else {
+          UIManager.setLookAndFeel(new FlatIntelliJLaf());
+        }
+      }
+      if (save) {
+        settingsManager.setTheme(theme);
       }
       SwingUtilities.updateComponentTreeUI(this);
     } catch (Exception ex) {
       JOptionPane.showMessageDialog(
           this, "Failed to set theme: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
     }
-  }
-
-  private void toggleTheme() {
-    boolean newIsDark = !settingsManager.isDarkTheme();
-    settingsManager.setDarkTheme(newIsDark);
-    applyTheme(newIsDark);
   }
 
   private void updateUiFont(String family, int size, boolean save) {
@@ -141,11 +194,11 @@ public class MainWindow extends JFrame {
     JMenu fileMenu = new JMenu("File");
     menuBar.add(fileMenu);
 
-    JMenuItem newMenuItem = new JMenuItem("New Package");
+    JMenuItem newMenuItem = new JMenuItem("New Package", getIcon("file-plus"));
     newMenuItem.addActionListener(e -> newPackage());
     fileMenu.add(newMenuItem);
 
-    JMenuItem openMenuItem = new JMenuItem("Open...");
+    JMenuItem openMenuItem = new JMenuItem("Open...", getIcon("folder-open"));
     openMenuItem.addActionListener(e -> openFile());
     fileMenu.add(openMenuItem);
 
@@ -169,7 +222,7 @@ public class MainWindow extends JFrame {
 
     fileMenu.add(new JSeparator());
 
-    saveMenuItem = new JMenuItem("Save");
+    saveMenuItem = new JMenuItem("Save", getIcon("device-floppy"));
     saveMenuItem.addActionListener(e -> saveFile());
     fileMenu.add(saveMenuItem);
 
@@ -179,7 +232,7 @@ public class MainWindow extends JFrame {
 
     fileMenu.add(new JSeparator());
 
-    extractAllMenuItem = new JMenuItem("Extract All...");
+    extractAllMenuItem = new JMenuItem("Extract All...", getIcon("file_archive"));
     extractAllMenuItem.addActionListener(e -> extractAll());
     fileMenu.add(extractAllMenuItem);
 
@@ -192,9 +245,22 @@ public class MainWindow extends JFrame {
     JMenu settingsMenu = new JMenu("Settings");
     menuBar.add(settingsMenu);
 
-    JMenuItem toggleThemeItem = new JMenuItem("Toggle Light/Dark Theme");
-    toggleThemeItem.addActionListener(e -> toggleTheme());
-    settingsMenu.add(toggleThemeItem);
+    JMenu themeMenu = new JMenu("Theme");
+    settingsMenu.add(themeMenu);
+
+    ButtonGroup themeGroup = new ButtonGroup();
+    String currentTheme = settingsManager.getTheme();
+
+    String[] themes = {
+      SettingsManager.THEME_LIGHT, SettingsManager.THEME_DARK, SettingsManager.THEME_SYSTEM
+    };
+    for (String theme : themes) {
+      JRadioButtonMenuItem themeItem = new JRadioButtonMenuItem(theme);
+      themeItem.setSelected(theme.equals(currentTheme));
+      themeItem.addActionListener(e -> applyTheme(theme, true));
+      themeGroup.add(themeItem);
+      themeMenu.add(themeItem);
+    }
 
     settingsMenu.addSeparator();
 
@@ -241,7 +307,8 @@ public class MainWindow extends JFrame {
           settingsManager.resetUiSettings();
           JOptionPane.showMessageDialog(
               this,
-              "UI settings have been reset.\nPlease restart the application for all changes to take effect.",
+              "UI settings have been reset.\nPlease restart the application for all changes to take"
+                  + " effect.",
               "Restart Required",
               JOptionPane.INFORMATION_MESSAGE);
         });
@@ -254,6 +321,36 @@ public class MainWindow extends JFrame {
     helpMenu.add(aboutMenuItem);
 
     return menuBar;
+  }
+
+  private JToolBar createToolBar() {
+    JToolBar toolBar = new JToolBar();
+    toolBar.setFloatable(false);
+    toolBar.setRollover(true);
+
+    JButton newButton = new JButton(getIcon("file-plus"));
+    newButton.setToolTipText("New Package");
+    newButton.addActionListener(e -> newPackage());
+    toolBar.add(newButton);
+
+    JButton openButton = new JButton(getIcon("folder-open"));
+    openButton.setToolTipText("Open...");
+    openButton.addActionListener(e -> openFile());
+    toolBar.add(openButton);
+
+    saveButton = new JButton(getIcon("device-floppy"));
+    saveButton.setToolTipText("Save");
+    saveButton.addActionListener(e -> saveFile());
+    toolBar.add(saveButton);
+
+    toolBar.addSeparator();
+
+    extractAllButton = new JButton(getIcon("file_archive"));
+    extractAllButton.setToolTipText("Extract All...");
+    extractAllButton.addActionListener(e -> extractAll());
+    toolBar.add(extractAllButton);
+
+    return toolBar;
   }
 
   /**
@@ -345,48 +442,8 @@ public class MainWindow extends JFrame {
   }
 
   private void showAboutDialog() {
-    String version = getAppVersion();
-    String title = "About UView";
-    String message =
-        "<html><body style='width: 300px;'>"
-            + "<h2>UView</h2>"
-            + "<p><b>Version:</b> "
-            + version
-            + "</p>"
-            + "<p>A desktop tool for viewing and modifying Unity packages.</p>"
-            + "<p><b>GitHub:</b> <a href='https://github.com/habedi/uview'>https://github.com/habedi/uview</a></p>"
-            + "</body></html>";
-
-    java.net.URL iconUrl = App.class.getResource("/logo.svg");
-    Icon aboutIcon = (iconUrl != null) ? new FlatSVGIcon(iconUrl).derive(64, 64) : null;
-
-    JLabel messageLabel = new JLabel(message);
-    messageLabel.addMouseListener(
-        new MouseAdapter() {
-          public void mouseClicked(MouseEvent e) {
-            try {
-              Desktop.getDesktop().browse(new java.net.URI("https://github.com/habedi/uview"));
-            } catch (Exception ex) {
-              // Ignore
-            }
-          }
-        });
-
-    JOptionPane.showMessageDialog(
-        this, messageLabel, title, JOptionPane.INFORMATION_MESSAGE, aboutIcon);
-  }
-
-  private String getAppVersion() {
-    try (InputStream is =
-        App.class.getResourceAsStream(
-            "/META-INF/maven/io.github.pixelclover/uview/pom.properties")) {
-      if (is == null) return "N/A";
-      Properties props = new Properties();
-      props.load(is);
-      return props.getProperty("version", "N/A");
-    } catch (IOException e) {
-      return "N/A";
-    }
+    AboutDialog aboutDialog = new AboutDialog(this);
+    aboutDialog.setVisible(true);
   }
 
   private void populateRecentFilesMenu() {
@@ -467,7 +524,9 @@ public class MainWindow extends JFrame {
 
   private void saveFile() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
+    if (currentPanel == null) {
+      return;
+    }
     if (currentPanel.getPackageFile() == null) {
       saveFileAs();
     } else {
@@ -477,7 +536,9 @@ public class MainWindow extends JFrame {
 
   private void saveFileAs() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
+    if (currentPanel == null) {
+      return;
+    }
 
     JFileChooser chooser = createFileChooser("Save Unity Package As...");
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
@@ -560,7 +621,9 @@ public class MainWindow extends JFrame {
 
   private void extractAll() {
     PackageViewPanel currentPanel = getCurrentPanel();
-    if (currentPanel == null) return;
+    if (currentPanel == null) {
+      return;
+    }
 
     JFileChooser chooser = createFileChooser("Select Directory to Extract All Assets");
     chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -611,11 +674,14 @@ public class MainWindow extends JFrame {
     boolean hasPanel = currentPanel != null;
 
     saveMenuItem.setEnabled(hasPanel && currentPanel.getPackageManager().isModified());
+    saveButton.setEnabled(hasPanel && currentPanel.getPackageManager().isModified());
     saveAsMenuItem.setEnabled(hasPanel);
     closeMenuItem.setEnabled(hasPanel);
     extractAllMenuItem.setEnabled(hasPanel);
+    extractAllButton.setEnabled(hasPanel);
 
     if (hasPanel) {
+      cardLayout.show(contentPanel, TABBED_PANE);
       int selectedIndex = tabbedPane.getSelectedIndex();
       tabbedPane.setTitleAt(selectedIndex, currentPanel.getTabTitle());
 
@@ -633,6 +699,7 @@ public class MainWindow extends JFrame {
         packageSizeLabel.setText("");
       }
     } else {
+      cardLayout.show(contentPanel, WELCOME_PANEL);
       setTitle("UView");
       statusLabel.setText("Ready");
       fileCountLabel.setText("");

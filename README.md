@@ -11,7 +11,6 @@
 [![Code Quality](https://img.shields.io/codefactor/grade/github/pixel-clover/uview?label=quality&style=flat&labelColor=282c34&logo=codefactor)](https://www.codefactor.io/repository/github/pixel-clover/uview)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat&labelColor=282c34&logo=open-source-initiative)](LICENSE)
 [![Release](https://img.shields.io/github/release/pixel-clover/uview.svg?label=release&style=flat&labelColor=282c34&logo=github)](https://github.com/pixel-clover/uview/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/pixel-clover/uview/total?label=downloads&style=flat&labelColor=282c34&logo=github)](https://github.com/pixel-clover/uview/releases)
 
 A cross-platform tool for viewing and modifying Unity package files
 
@@ -93,4 +92,4 @@ Box logo is from [SVG Repo](https://www.svgrepo.com/svg/366323/package-inspect).
 
 ### License
 
-UView is available under the Apache License, Version 2.0 ([LICENSE](LICENSE)).
+UView is available under the Apache License, Version 2.0 (see [LICENSE](LICENSE)).

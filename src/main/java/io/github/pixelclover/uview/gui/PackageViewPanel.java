@@ -6,14 +6,30 @@ import io.github.pixelclover.uview.core.SettingsManager;
 import io.github.pixelclover.uview.gui.tree.TreeEntry;
 import io.github.pixelclover.uview.io.PackageIO;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
-import javax.swing.*;
+import javax.swing.BorderFactory;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.JTree;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -140,7 +156,6 @@ public class PackageViewPanel extends JPanel {
 
   private JPopupMenu createPopupMenu() {
     JPopupMenu popup = new JPopupMenu();
-    TreePath selectionPath = tree.getSelectionPath();
 
     JMenuItem viewMenuItem = new JMenuItem("View");
     viewMenuItem.addActionListener(e -> handleDoubleClick());
@@ -172,6 +187,7 @@ public class PackageViewPanel extends JPanel {
     removeMenuItem.setEnabled(false);
     extractSelectedMenuItem.setEnabled(false);
 
+    TreePath selectionPath = tree.getSelectionPath();
     if (selectionPath != null) {
       DefaultMutableTreeNode selectedNode =
           (DefaultMutableTreeNode) selectionPath.getLastPathComponent();

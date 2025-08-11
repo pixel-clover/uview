@@ -2,9 +2,13 @@ package io.github.pixelclover.uview.gui;
 
 import io.github.pixelclover.uview.core.PackageManager;
 import io.github.pixelclover.uview.model.UnityAsset;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.nio.charset.StandardCharsets;
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -46,28 +50,28 @@ public class MetaEditorFrame extends JDialog {
   }
 
   private RSyntaxTextArea createTextArea() {
-    RSyntaxTextArea rSyntaxTextArea = new RSyntaxTextArea();
-    rSyntaxTextArea.setEditable(true);
+    RSyntaxTextArea rsyntaxTextArea = new RSyntaxTextArea();
+    rsyntaxTextArea.setEditable(true);
 
     if (asset.metaContent() != null) {
-      rSyntaxTextArea.setText(new String(asset.metaContent(), StandardCharsets.UTF_8));
+      rsyntaxTextArea.setText(new String(asset.metaContent(), StandardCharsets.UTF_8));
     } else {
       String defaultMeta = String.format("fileFormatVersion: 2\nguid: %s\n", asset.guid());
-      rSyntaxTextArea.setText(defaultMeta);
+      rsyntaxTextArea.setText(defaultMeta);
     }
-    rSyntaxTextArea.setCaretPosition(0);
+    rsyntaxTextArea.setCaretPosition(0);
 
     // Apply syntax highlighting and theme
-    rSyntaxTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_YAML);
+    rsyntaxTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_YAML);
     try {
       Theme theme =
           Theme.load(
               getClass().getResourceAsStream("/org/fife/ui/rsyntaxtextarea/themes/dark.xml"));
-      theme.apply(rSyntaxTextArea);
+      theme.apply(rsyntaxTextArea);
     } catch (Exception e) {
       // Ignore, fallback to default theme
     }
-    return rSyntaxTextArea;
+    return rsyntaxTextArea;
   }
 
   private JPanel createButtonPanel() {
