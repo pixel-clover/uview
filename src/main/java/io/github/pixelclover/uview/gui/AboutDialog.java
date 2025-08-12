@@ -102,7 +102,7 @@ public class AboutDialog extends JDialog {
   private String getAppVersion() {
     try (InputStream is =
         App.class.getResourceAsStream(
-            "/META-INF/maven/io.github.pixelclover/uview/pom.properties")) {
+            "/META-INF/maven/io.github.pixelclover.uview/uview/pom.properties")) {
       if (is == null) {
         return "N/A";
       }
