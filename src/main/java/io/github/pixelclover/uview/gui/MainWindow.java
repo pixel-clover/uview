@@ -198,7 +198,7 @@ public class MainWindow extends JFrame {
     newMenuItem.addActionListener(e -> newPackage());
     fileMenu.add(newMenuItem);
 
-    JMenuItem openMenuItem = new JMenuItem("Open...", getIcon("folder-open"));
+    JMenuItem openMenuItem = new JMenuItem("Open", getIcon("folder-open"));
     openMenuItem.addActionListener(e -> openFile());
     fileMenu.add(openMenuItem);
 
@@ -226,13 +226,13 @@ public class MainWindow extends JFrame {
     saveMenuItem.addActionListener(e -> saveFile());
     fileMenu.add(saveMenuItem);
 
-    saveAsMenuItem = new JMenuItem("Save As...");
+    saveAsMenuItem = new JMenuItem("Save As");
     saveAsMenuItem.addActionListener(e -> saveFileAs());
     fileMenu.add(saveAsMenuItem);
 
     fileMenu.add(new JSeparator());
 
-    extractAllMenuItem = new JMenuItem("Extract All...", getIcon("file_archive"));
+    extractAllMenuItem = new JMenuItem("Extract All", getIcon("file_archive"));
     extractAllMenuItem.addActionListener(e -> extractAll());
     fileMenu.add(extractAllMenuItem);
 
@@ -334,7 +334,7 @@ public class MainWindow extends JFrame {
     toolBar.add(newButton);
 
     JButton openButton = new JButton(getIcon("folder-open"));
-    openButton.setToolTipText("Open...");
+    openButton.setToolTipText("Open");
     openButton.addActionListener(e -> openFile());
     toolBar.add(openButton);
 
@@ -346,7 +346,7 @@ public class MainWindow extends JFrame {
     toolBar.addSeparator();
 
     extractAllButton = new JButton(getIcon("file_archive"));
-    extractAllButton.setToolTipText("Extract All...");
+    extractAllButton.setToolTipText("Extract All");
     extractAllButton.addActionListener(e -> extractAll());
     toolBar.add(extractAllButton);
 
@@ -540,7 +540,7 @@ public class MainWindow extends JFrame {
       return;
     }
 
-    JFileChooser chooser = createFileChooser("Save Unity Package As...");
+    JFileChooser chooser = createFileChooser("Save Unity Package As");
     chooser.setFileFilter(new FileNameExtensionFilter("Unity Package", "unitypackage"));
     if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
       File selectedFile = chooser.getSelectedFile();
@@ -636,7 +636,7 @@ public class MainWindow extends JFrame {
   }
 
   private void extractAllInBackground(PackageViewPanel panel, Path outputDir) {
-    setWorking(true, "Extracting all assets...");
+    setWorking(true, "Extracting all assets");
     SwingWorker<Void, Void> worker =
         new SwingWorker<>() {
           @Override
