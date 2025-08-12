@@ -56,7 +56,7 @@ public class WelcomePanel extends JPanel {
     newButton.addActionListener(e -> newPackageAction.run());
     actionPanel.add(newButton);
 
-    JButton openButton = new JButton("Open...");
+    JButton openButton = new JButton("Open");
     openButton.addActionListener(e -> openFileAction.run());
     actionPanel.add(openButton);
 

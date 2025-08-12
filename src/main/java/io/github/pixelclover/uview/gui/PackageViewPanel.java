@@ -167,7 +167,7 @@ public class PackageViewPanel extends JPanel {
 
     popup.add(new JSeparator());
 
-    JMenuItem addMenuItem = new JMenuItem("Add File...");
+    JMenuItem addMenuItem = new JMenuItem("Add File");
     addMenuItem.addActionListener(e -> addFile());
     popup.add(addMenuItem);
 
@@ -177,7 +177,7 @@ public class PackageViewPanel extends JPanel {
 
     popup.add(new JSeparator());
 
-    JMenuItem extractSelectedMenuItem = new JMenuItem("Extract Selected...");
+    JMenuItem extractSelectedMenuItem = new JMenuItem("Extract Selected");
     extractSelectedMenuItem.addActionListener(e -> extractSelected());
     popup.add(extractSelectedMenuItem);
 
