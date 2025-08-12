@@ -52,13 +52,13 @@ public class WelcomePanel extends JPanel {
 
     // Action Buttons
     JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
-    JButton newButton = new JButton("New Package");
-    newButton.addActionListener(e -> newPackageAction.run());
-    actionPanel.add(newButton);
-
     JButton openButton = new JButton("Open");
     openButton.addActionListener(e -> openFileAction.run());
     actionPanel.add(openButton);
+
+    JButton newButton = new JButton("New Package");
+    newButton.addActionListener(e -> newPackageAction.run());
+    actionPanel.add(newButton);
 
     add(actionPanel, BorderLayout.SOUTH);
   }

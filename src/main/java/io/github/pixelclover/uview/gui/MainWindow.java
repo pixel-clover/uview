@@ -226,7 +226,7 @@ public class MainWindow extends JFrame {
     saveMenuItem.addActionListener(e -> saveFile());
     fileMenu.add(saveMenuItem);
 
-    saveAsMenuItem = new JMenuItem("Save As");
+    saveAsMenuItem = new JMenuItem("Save As", getIcon("device-floppy"));
     saveAsMenuItem.addActionListener(e -> saveFileAs());
     fileMenu.add(saveAsMenuItem);
 
