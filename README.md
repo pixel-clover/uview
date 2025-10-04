@@ -60,15 +60,16 @@ Replace `<version>` with the version you downloaded.
 ### Screenshots
 
 <div align="center">
-  <img alt="Main Window" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
+  <img alt="Main Window" src="docs/assets/screenshots/0.1.1/asset-window.png" width="80%">
 </div>
 
 <details>
 <summary>Show more screenshots</summary>
 
 <div align="center">
-  <img alt="C# Code" src="docs/assets/screenshots/uview-0.1.0-b.2-2.png" width="80%">
-  <img alt="Image View" src="docs/assets/screenshots/uview-0.1.0-b.2-3.png" width="80%">
+  <img alt="C# Code" src="docs/assets/screenshots/0.1.1/start-window.png" width="80%">
+  <img alt="C# Code" src="docs/assets/screenshots/0.1.0-b.2/code-viewer.png" width="80%">
+  <img alt="Image View" src="docs/assets/screenshots/0.1.0-b.2/image-viewer.png" width="80%">
 </div>
 
 </details>
