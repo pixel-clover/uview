@@ -48,14 +48,14 @@ If you don't have Java installed, you can download it from the [Adoptium](https:
 manager.
 
 Assuming you have Java installed, download the latest JAR release of UView from the
-[Releases Page](https://github.com/pixel-clover/uview/releases).
+[release page](https://github.com/pixel-clover/uview/releases).
 After downloading, you can start UView from your terminal or console using the following command:
 
 ```bash
 java -jar uview-<version>.jar
 ````
 
-Replace `<version>` with the version you downloaded.
+Replace `<version>` with the version you downloaded (like `0.1.1`).
 
 ### Screenshots
 
