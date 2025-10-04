@@ -48,27 +48,28 @@ If you don't have Java installed, you can download it from the [Adoptium](https:
 manager.
 
 Assuming you have Java installed, download the latest JAR release of UView from the
-[Releases Page](https://github.com/pixel-clover/uview/releases).
+[release page](https://github.com/pixel-clover/uview/releases).
 After downloading, you can start UView from your terminal or console using the following command:
 
 ```bash
 java -jar uview-<version>.jar
 ````
 
-Replace `<version>` with the version you downloaded.
+Replace `<version>` with the version you downloaded (like `0.1.1`).
 
 ### Screenshots
 
 <div align="center">
-  <img alt="Main Window" src="docs/assets/screenshots/uview-0.1.0-b.2-1.png" width="80%">
+  <img alt="Main Window" src="docs/assets/screenshots/0.1.1/asset-window.png" width="80%">
 </div>
 
 <details>
 <summary>Show more screenshots</summary>
 
 <div align="center">
-  <img alt="C# Code" src="docs/assets/screenshots/uview-0.1.0-b.2-2.png" width="80%">
-  <img alt="Image View" src="docs/assets/screenshots/uview-0.1.0-b.2-3.png" width="80%">
+  <img alt="C# Code" src="docs/assets/screenshots/0.1.1/start-window.png" width="80%">
+  <img alt="C# Code" src="docs/assets/screenshots/0.1.0-b.2/code-viewer.png" width="80%">
+  <img alt="Image View" src="docs/assets/screenshots/0.1.0-b.2/image-viewer.png" width="80%">
 </div>
 
 </details>

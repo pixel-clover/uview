@@ -108,4 +108,50 @@ class SettingsManagerTest {
         tempDir.resolve("file2.txt").toAbsolutePath().toString(),
         recentFiles.get(4).getAbsolutePath());
   }
+
+  @Test
+  void getTheme_shouldReturnDefaultWhenNotSet() {
+    assertEquals(SettingsManager.THEME_SYSTEM, settingsManager.getTheme());
+  }
+
+  @Test
+  void setAndGetTheme_shouldStoreAndRetrieveCorrectly() {
+    settingsManager.setTheme(SettingsManager.THEME_DARK);
+    assertEquals(SettingsManager.THEME_DARK, settingsManager.getTheme());
+  }
+
+  @Test
+  void getFontSize_shouldReturnDefaultWhenNotSet() {
+    assertEquals(12, settingsManager.getFontSize());
+  }
+
+  @Test
+  void setAndGetFontSize_shouldStoreAndRetrieveCorrectly() {
+    settingsManager.setFontSize(16);
+    assertEquals(16, settingsManager.getFontSize());
+  }
+
+  @Test
+  void getFontFamily_shouldReturnDefaultWhenNotSet() {
+    assertEquals("SansSerif", settingsManager.getFontFamily());
+  }
+
+  @Test
+  void setAndGetFontFamily_shouldStoreAndRetrieveCorrectly() {
+    settingsManager.setFontFamily("Monospaced");
+    assertEquals("Monospaced", settingsManager.getFontFamily());
+  }
+
+  @Test
+  void resetUiSettings_shouldResetAllUiSettings() {
+    settingsManager.setTheme(SettingsManager.THEME_LIGHT);
+    settingsManager.setFontSize(20);
+    settingsManager.setFontFamily("Arial");
+
+    settingsManager.resetUiSettings();
+
+    assertEquals(SettingsManager.THEME_SYSTEM, settingsManager.getTheme());
+    assertEquals(12, settingsManager.getFontSize());
+    assertEquals("SansSerif", settingsManager.getFontFamily());
+  }
 }
