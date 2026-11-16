@@ -66,16 +66,6 @@ java -jar uview-<version>.jar list "My Package.unitypackage"
 java -jar uview-<version>.jar extract "My Package.unitypackage" extracted-assets
 ```
 
-`list` prints one asset path per line, sorted by path, including folder assets.
-`extract` writes asset contents with their full package paths, such as `extracted-assets/Assets/Scripts/Player.cs`.
-It does not export `.meta` files, preview images, or empty folders. The output directory must not exist, and its parent must exist.
-Paths that escape the output directory and paths through symbolic links are rejected.
-If extraction fails, files already extracted remain in the output directory.
-
-Exit codes are `0` for success, `1` for file or extraction errors, and `2` for invalid command usage.
-Results go to standard output and errors go to standard error. With no arguments, UView opens the GUI.
-For a local build, use `nix develop -c make package` and replace the JAR path above with `target/uview.jar`.
-
 ### Screenshots
 
 <div align="center">
