@@ -50,6 +50,9 @@ public final class TreeModelBuilder {
         DefaultMutableTreeNode assetNode = new DefaultMutableTreeNode(entry);
         parentNode.add(assetNode);
         nodeMap.put(normalizedPath, assetNode);
+      } else {
+        // An implicit parent may have been created before its folder asset was visited.
+        nodeMap.get(normalizedPath).setUserObject(new TreeEntry.AssetEntry(asset));
       }
     }
 

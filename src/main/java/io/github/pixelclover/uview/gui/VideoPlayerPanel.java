@@ -37,28 +37,27 @@ public class VideoPlayerPanel extends JPanel {
     add(jfxPanel, BorderLayout.CENTER);
 
     Platform.setImplicitExit(false);
-    Platform.runLater(
-        () -> {
-          try {
-            Media media = new Media(assetPath.toUri().toString());
-            mediaPlayer = new MediaPlayer(media);
-            mediaPlayer.setAutoPlay(true);
+    Platform.runLater(() -> {
+      try {
+        Media media = new Media(assetPath.toUri().toString());
+        mediaPlayer = new MediaPlayer(media);
+        mediaPlayer.setAutoPlay(true);
 
-            MediaView mediaView = new MediaView(mediaPlayer);
-            mediaView.setPreserveRatio(true);
+        MediaView mediaView = new MediaView(mediaPlayer);
+        mediaView.setPreserveRatio(true);
 
-            BorderPane root = new BorderPane();
-            root.setCenter(mediaView);
-            root.setBottom(createControls());
+        BorderPane root = new BorderPane();
+        root.setCenter(mediaView);
+        root.setBottom(createControls());
 
-            Scene scene = new Scene(root);
-            mediaView.fitWidthProperty().bind(scene.widthProperty());
-            mediaView.fitHeightProperty().bind(scene.heightProperty().subtract(50));
-            jfxPanel.setScene(scene);
-          } catch (Exception e) {
-            // Handle exceptions, e.g., by showing an error message
-          }
-        });
+        Scene scene = new Scene(root);
+        mediaView.fitWidthProperty().bind(scene.widthProperty());
+        mediaView.fitHeightProperty().bind(scene.heightProperty().subtract(50));
+        jfxPanel.setScene(scene);
+      } catch (Exception e) {
+        // Handle exceptions, e.g., by showing an error message
+      }
+    });
   }
 
   private HBox createControls() {
@@ -67,16 +66,15 @@ public class VideoPlayerPanel extends JPanel {
     controls.setPadding(new Insets(10));
 
     Button playPauseButton = new Button("Pause");
-    playPauseButton.setOnAction(
-        e -> {
-          if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
-            mediaPlayer.pause();
-            playPauseButton.setText("Play");
-          } else {
-            mediaPlayer.play();
-            playPauseButton.setText("Pause");
-          }
-        });
+    playPauseButton.setOnAction(e -> {
+      if (mediaPlayer.getStatus() == MediaPlayer.Status.PLAYING) {
+        mediaPlayer.pause();
+        playPauseButton.setText("Play");
+      } else {
+        mediaPlayer.play();
+        playPauseButton.setText("Pause");
+      }
+    });
 
     Label timeLabel = new Label();
     Slider timeSlider = new Slider();
@@ -92,29 +90,26 @@ public class VideoPlayerPanel extends JPanel {
 
     mediaPlayer
         .currentTimeProperty()
-        .addListener(
-            (obs, oldTime, newTime) -> {
-              if (!timeSlider.isValueChanging()) {
-                timeSlider.setValue(newTime.toSeconds());
-              }
-              timeLabel.setText(
-                  formatDuration(newTime) + " / " + formatDuration(mediaPlayer.getTotalDuration()));
-            });
-
-    mediaPlayer.setOnReady(
-        () -> {
-          timeSlider.setMax(mediaPlayer.getTotalDuration().toSeconds());
-          timeLabel.setText("00:00 / " + formatDuration(mediaPlayer.getTotalDuration()));
+        .addListener((obs, oldTime, newTime) -> {
+          if (!timeSlider.isValueChanging()) {
+            timeSlider.setValue(newTime.toSeconds());
+          }
+          timeLabel.setText(
+              formatDuration(newTime) + " / " + formatDuration(mediaPlayer.getTotalDuration()));
         });
+
+    mediaPlayer.setOnReady(() -> {
+      timeSlider.setMax(mediaPlayer.getTotalDuration().toSeconds());
+      timeLabel.setText("00:00 / " + formatDuration(mediaPlayer.getTotalDuration()));
+    });
 
     timeSlider
         .valueProperty()
-        .addListener(
-            (obs, oldValue, newValue) -> {
-              if (timeSlider.isValueChanging()) {
-                mediaPlayer.seek(Duration.seconds(newValue.doubleValue()));
-              }
-            });
+        .addListener((obs, oldValue, newValue) -> {
+          if (timeSlider.isValueChanging()) {
+            mediaPlayer.seek(Duration.seconds(newValue.doubleValue()));
+          }
+        });
 
     return controls;
   }
@@ -132,11 +127,10 @@ public class VideoPlayerPanel extends JPanel {
   /** Stops the media player and releases resources. */
   public void stop() {
     if (mediaPlayer != null) {
-      Platform.runLater(
-          () -> {
-            mediaPlayer.stop();
-            mediaPlayer.dispose();
-          });
+      Platform.runLater(() -> {
+        mediaPlayer.stop();
+        mediaPlayer.dispose();
+      });
     }
   }
 }

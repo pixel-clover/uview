@@ -216,13 +216,12 @@ public class AssetViewerFrame extends JFrame {
               revertButton.setEnabled(isDirty);
             });
 
-    saveButton.addActionListener(
-        e -> {
-          byte[] newContent = syntaxTextPanel.getText().getBytes(StandardCharsets.UTF_8);
-          packageManager.updateAssetContent(asset.assetPath(), newContent);
-          syntaxTextPanel.markAsSaved();
-          onSaveCallback.run();
-        });
+    saveButton.addActionListener(e -> {
+      byte[] newContent = syntaxTextPanel.getText().getBytes(StandardCharsets.UTF_8);
+      packageManager.updateAssetContent(asset.assetPath(), newContent);
+      syntaxTextPanel.markAsSaved();
+      onSaveCallback.run();
+    });
 
     revertButton.addActionListener(e -> syntaxTextPanel.revert());
 

@@ -12,9 +12,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class PackageManagerTest {
 
@@ -180,5 +183,185 @@ class PackageManagerTest {
     assertEquals(1, packageManager.getAssets().size());
     assertEquals(
         "Assets/Other/File3.txt", packageManager.getAssets().iterator().next().assetPath());
+  }
+
+  @Test
+  void createNewClearsAssetsAndUnsavedState() throws IOException {
+    packageManager.addAsset(sourceFile, "Assets/file.txt");
+    packageManager.createNew();
+    assertTrue(packageManager.getAssets().isEmpty());
+    assertFalse(packageManager.isModified());
+  }
+
+  @Test
+  void loadReplacesExistingAssetsAndClearsUnsavedState() throws IOException {
+    packageManager.addAsset(sourceFile, "Assets/old.txt");
+    packageManager.loadPackage(tempDir.resolve("loaded.unitypackage").toFile());
+    assertTrue(packageManager.getAssets().isEmpty());
+    assertFalse(packageManager.isModified());
+  }
+
+  @Test
+  void failedLoadPreservesExistingAssetsAndUnsavedState() throws IOException {
+    PackageManager manager = new PackageManager(new PackageIO());
+    manager.addAsset(sourceFile, "Assets/file.txt");
+    UnityAsset original = manager.getAssets().iterator().next();
+    assertThrows(
+        IOException.class,
+        () -> manager.loadPackage(tempDir.resolve("missing.unitypackage").toFile()));
+    assertEquals(List.of(original), List.copyOf(manager.getAssets()));
+    assertTrue(manager.isModified());
+  }
+
+  @Test
+  void failedSavePreservesUnsavedState() throws IOException {
+    PackageManager manager =
+        new PackageManager(
+            new PackageIO() {
+              @Override
+              public void save(UnityPackage pkg, File file) throws IOException {
+                throw new IOException("simulated write failure");
+              }
+            });
+    manager.addAsset(sourceFile, "Assets/file.txt");
+    assertThrows(
+        IOException.class,
+        () -> manager.savePackage(tempDir.resolve("failed.unitypackage").toFile()));
+    assertTrue(manager.isModified());
+    assertEquals(1, manager.getAssets().size());
+  }
+
+  @Test
+  void emptyFiltersReturnAllAssetsAndSearchIgnoresCase() throws IOException {
+    packageManager.addAsset(sourceFile, "Assets/Player.cs");
+    packageManager.addAsset(sourceFile2, "Assets/Other.txt");
+    for (String query : new String[] {null, "", "  "}) {
+      assertEquals(2, packageManager.getFilteredAssets(query).size());
+    }
+    assertEquals(
+        "Assets/Player.cs",
+        packageManager.getFilteredAssets("PLAYER").iterator().next().assetPath());
+    assertTrue(packageManager.getFilteredAssets("missing").isEmpty());
+  }
+
+  @Test
+  void directorySelectionAndRemovalDoNotMatchSiblingPrefixes() throws IOException {
+    packageManager.addAsset(sourceFile, "Assets/Tex/file.txt");
+    packageManager.addAsset(sourceFile2, "Assets/Textures/other.txt");
+    assertEquals(1, packageManager.getAssetsUnderPath("Assets/Tex/").size());
+    packageManager.savePackage(tempDir.resolve("saved.unitypackage").toFile());
+    packageManager.removeDirectory("Assets/missing/");
+    assertFalse(packageManager.isModified());
+    packageManager.removeDirectory("Assets/Tex/");
+    assertTrue(packageManager.isModified());
+    assertEquals(
+        "Assets/Textures/other.txt", packageManager.getAssets().iterator().next().assetPath());
+  }
+
+  @Test
+  void updatingMissingAssetsDoesNotChangePackageState() {
+    packageManager.updateAssetContent("missing", new byte[] {1});
+    packageManager.updateAssetMeta("missing", new byte[] {2});
+    assertFalse(packageManager.isModified());
+    assertTrue(packageManager.getAssets().isEmpty());
+  }
+
+  @Test
+  void assetAtSizeLimitIsAcceptedAndMissingSourceIsRejected() throws IOException {
+    PackageManager manager = new PackageManager(new PackageIO(), Files.size(sourceFile));
+    manager.addAsset(sourceFile, "Assets/file.txt");
+    UnityAsset asset = manager.getAssets().iterator().next();
+    assertArrayEquals(Files.readAllBytes(sourceFile), asset.content());
+    assertTrue(
+        new String(asset.metaContent(), StandardCharsets.UTF_8).contains("guid: " + asset.guid()));
+    assertThrows(
+        IOException.class,
+        () -> manager.addAsset(tempDir.resolve("missing.txt"), "Assets/missing.txt"));
+    assertEquals(1, manager.getAssets().size());
+  }
+
+  @Test
+  void extractionPreservesHierarchyAndSkipsDirectoryAndEmptyRelativePaths() throws IOException {
+    Path output = Files.createDirectory(tempDir.resolve("output"));
+    UnityAsset directory = UnityAsset.createNew("Assets/Folder", null, null, null);
+    UnityAsset file =
+        UnityAsset.createNew("Assets/Folder/file.bin", new byte[] {0, -1, 2}, null, null);
+    UnityAsset stripped = UnityAsset.createNew("Assets/", new byte[] {3}, null, null);
+    packageManager.extractAssets(List.of(directory, file, stripped), output, "Assets/");
+    assertArrayEquals(file.content(), Files.readAllBytes(output.resolve("Folder/file.bin")));
+    try (var files = Files.walk(output)) {
+      assertEquals(1, files.filter(Files::isRegularFile).count());
+    }
+  }
+
+  @Test
+  void extractionWithoutMatchingPrefixKeepsFullAssetPath() throws IOException {
+    UnityAsset asset = UnityAsset.createNew("Assets/file.txt", new byte[] {1}, null, null);
+    for (String prefix : new String[] {null, "Other/"}) {
+      Path output = Files.createTempDirectory(tempDir, "extract-");
+      packageManager.extractAssets(List.of(asset), output, prefix);
+      assertArrayEquals(asset.content(), Files.readAllBytes(output.resolve("Assets/file.txt")));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "../escape.txt",
+        "Assets/../../escape.txt",
+        "..\\escape.txt",
+        "C:/escape.txt",
+        "C:\\escape.txt",
+        "/escape.txt",
+        "."
+      })
+  void extractionRejectsPathsOutsideTheDestination(String path) throws IOException {
+    Path output = tempDir.resolve("output");
+    UnityAsset asset = UnityAsset.createNew(path, new byte[] {1}, null, null);
+    assertThrows(
+        IOException.class, () -> packageManager.extractAssets(List.of(asset), output, null));
+    assertFalse(Files.exists(tempDir.resolve("escape.txt")));
+    try (var files = Files.list(output)) {
+      assertEquals(0, files.count());
+    }
+  }
+
+  @Test
+  void extractionRejectsAbsolutePaths() throws IOException {
+    Path outside = tempDir.resolve("outside.txt");
+    UnityAsset asset = UnityAsset.createNew(outside.toString(), new byte[] {1}, null, null);
+    assertThrows(
+        IOException.class,
+        () -> packageManager.extractAssets(List.of(asset), tempDir.resolve("output"), null));
+    assertFalse(Files.exists(outside));
+  }
+
+  @Test
+  void extractionNormalizesWindowsSeparators() throws IOException {
+    UnityAsset asset =
+        UnityAsset.createNew("Assets\\Scripts\\file.txt", new byte[] {1}, null, null);
+    Path output = tempDir.resolve("output");
+    packageManager.extractAssets(List.of(asset), output, null);
+    assertArrayEquals(
+        asset.content(), Files.readAllBytes(output.resolve("Assets/Scripts/file.txt")));
+  }
+
+  @Test
+  void extractionRejectsSymlinkedParentsAndFiles() throws IOException {
+    Path output = Files.createDirectory(tempDir.resolve("output"));
+    Path outside = Files.createDirectory(tempDir.resolve("outside"));
+    Path protectedFile = Files.writeString(outside.resolve("file.txt"), "keep");
+    try {
+      Files.createSymbolicLink(output.resolve("linked-dir"), outside);
+      Files.createSymbolicLink(output.resolve("linked-file"), protectedFile);
+    } catch (UnsupportedOperationException | IOException | SecurityException e) {
+      Assumptions.abort("Symbolic links are unavailable: " + e.getMessage());
+    }
+    for (String path : List.of("linked-dir/file.txt", "linked-file")) {
+      UnityAsset asset = UnityAsset.createNew(path, new byte[] {1}, null, null);
+      assertThrows(
+          IOException.class, () -> packageManager.extractAssets(List.of(asset), output, null));
+      assertEquals("keep", Files.readString(protectedFile));
+    }
   }
 }

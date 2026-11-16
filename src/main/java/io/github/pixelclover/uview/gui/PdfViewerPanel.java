@@ -104,21 +104,20 @@ public class PdfViewerPanel extends JPanel {
     currentPage = newPageIndex;
 
     // Render the page in a background thread to keep the UI responsive
-    SwingUtilities.invokeLater(
-        () -> {
-          try {
-            BufferedImage image = renderer.renderImageWithDPI(currentPage, 150); // 150 DPI
-            pageLabel.setIcon(new ImageIcon(image));
-            statusLabel.setText("Page " + (currentPage + 1) + " of " + document.getNumberOfPages());
-            pageInputField.setText(String.valueOf(currentPage + 1));
+    SwingUtilities.invokeLater(() -> {
+      try {
+        BufferedImage image = renderer.renderImageWithDPI(currentPage, 150); // 150 DPI
+        pageLabel.setIcon(new ImageIcon(image));
+        statusLabel.setText("Page " + (currentPage + 1) + " of " + document.getNumberOfPages());
+        pageInputField.setText(String.valueOf(currentPage + 1));
 
-            // Enable/disable navigation buttons
-            prevButton.setEnabled(currentPage > 0);
-            nextButton.setEnabled(currentPage < document.getNumberOfPages() - 1);
-          } catch (IOException e) {
-            pageLabel.setText("Failed to render page: " + e.getMessage());
-          }
-        });
+        // Enable/disable navigation buttons
+        prevButton.setEnabled(currentPage > 0);
+        nextButton.setEnabled(currentPage < document.getNumberOfPages() - 1);
+      } catch (IOException e) {
+        pageLabel.setText("Failed to render page: " + e.getMessage());
+      }
+    });
   }
 
   /**

@@ -22,6 +22,16 @@ issue you would like to work on.
 
 This project uses `make` to manage common tasks.
 
+#### Nix Development Shell
+
+On x86_64/aarch64 Linux or Apple Silicon macOS, use Nix with flakes enabled to enter the development environment:
+
+```bash
+nix develop
+make test
+make run
+```
+
 #### Code Style
 
 - This project uses **Spotless** with the Google Java Style guide.
