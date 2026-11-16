@@ -21,6 +21,7 @@ Prioritize package and asset integrity, responsive UI behavior, and compatibilit
 ## Repository Layout
 
 - `src/main/java/io/github/pixelclover/uview/App.java`: Application entry point and UI initialization.
+- `src/main/java/io/github/pixelclover/uview/cli/`: Headless `list` and `extract` commands, help, and exit codes.
 - `src/main/java/io/github/pixelclover/uview/core/`: `PackageManager` controls package operations and unsaved state; `SettingsManager` persists preferences.
 - `src/main/java/io/github/pixelclover/uview/io/PackageIO.java`: Reads and writes gzip-compressed tar archives.
 - `src/main/java/io/github/pixelclover/uview/model/`: `UnityAsset` and `UnityPackage` represent assets and package contents.

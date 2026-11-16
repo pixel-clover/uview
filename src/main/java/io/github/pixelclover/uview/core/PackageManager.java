@@ -239,13 +239,15 @@ public class PackageManager {
    * @param outputDir The destination directory.
    * @param pathPrefixToStrip A common path prefix to remove from the asset paths, preserving the
    *     relative structure within the output directory.
-   * @throws IOException If an error occurs during file writing.
+   * @throws IOException If writing fails, an asset escapes the destination, or its path contains a
+   *     symbolic link.
    */
   public void extractAssets(Collection<UnityAsset> assets, Path outputDir, String pathPrefixToStrip)
       throws IOException {
     if (!Files.exists(outputDir)) {
       Files.createDirectories(outputDir);
     }
+    Path root = outputDir.toRealPath();
     for (UnityAsset asset : assets) {
       if (asset.content() == null) {
         continue;
@@ -260,7 +262,20 @@ public class PackageManager {
         continue;
       }
 
-      Path targetPath = outputDir.resolve(relativePath);
+      relativePath = relativePath.replace('\\', '/');
+      Path targetPath = root.resolve(relativePath).normalize();
+      if (relativePath.matches("^[A-Za-z]:.*")
+          || !targetPath.startsWith(root)
+          || targetPath.equals(root)) {
+        throw new IOException("Asset path is outside the output directory: " + asset.assetPath());
+      }
+      Path current = root;
+      for (Path part : root.relativize(targetPath)) {
+        current = current.resolve(part);
+        if (Files.isSymbolicLink(current)) {
+          throw new IOException("Asset path contains a symbolic link: " + asset.assetPath());
+        }
+      }
       Files.createDirectories(targetPath.getParent());
       Files.write(targetPath, asset.content());
     }

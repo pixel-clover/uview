@@ -12,9 +12,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class PackageManagerTest {
 
@@ -298,6 +301,67 @@ class PackageManagerTest {
       Path output = Files.createTempDirectory(tempDir, "extract-");
       packageManager.extractAssets(List.of(asset), output, prefix);
       assertArrayEquals(asset.content(), Files.readAllBytes(output.resolve("Assets/file.txt")));
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "../escape.txt",
+        "Assets/../../escape.txt",
+        "..\\escape.txt",
+        "C:/escape.txt",
+        "C:\\escape.txt",
+        "/escape.txt",
+        "."
+      })
+  void extractionRejectsPathsOutsideTheDestination(String path) throws IOException {
+    Path output = tempDir.resolve("output");
+    UnityAsset asset = UnityAsset.createNew(path, new byte[] {1}, null, null);
+    assertThrows(
+        IOException.class, () -> packageManager.extractAssets(List.of(asset), output, null));
+    assertFalse(Files.exists(tempDir.resolve("escape.txt")));
+    try (var files = Files.list(output)) {
+      assertEquals(0, files.count());
+    }
+  }
+
+  @Test
+  void extractionRejectsAbsolutePaths() throws IOException {
+    Path outside = tempDir.resolve("outside.txt");
+    UnityAsset asset = UnityAsset.createNew(outside.toString(), new byte[] {1}, null, null);
+    assertThrows(
+        IOException.class,
+        () -> packageManager.extractAssets(List.of(asset), tempDir.resolve("output"), null));
+    assertFalse(Files.exists(outside));
+  }
+
+  @Test
+  void extractionNormalizesWindowsSeparators() throws IOException {
+    UnityAsset asset =
+        UnityAsset.createNew("Assets\\Scripts\\file.txt", new byte[] {1}, null, null);
+    Path output = tempDir.resolve("output");
+    packageManager.extractAssets(List.of(asset), output, null);
+    assertArrayEquals(
+        asset.content(), Files.readAllBytes(output.resolve("Assets/Scripts/file.txt")));
+  }
+
+  @Test
+  void extractionRejectsSymlinkedParentsAndFiles() throws IOException {
+    Path output = Files.createDirectory(tempDir.resolve("output"));
+    Path outside = Files.createDirectory(tempDir.resolve("outside"));
+    Path protectedFile = Files.writeString(outside.resolve("file.txt"), "keep");
+    try {
+      Files.createSymbolicLink(output.resolve("linked-dir"), outside);
+      Files.createSymbolicLink(output.resolve("linked-file"), protectedFile);
+    } catch (UnsupportedOperationException | IOException | SecurityException e) {
+      Assumptions.abort("Symbolic links are unavailable: " + e.getMessage());
+    }
+    for (String path : List.of("linked-dir/file.txt", "linked-file")) {
+      UnityAsset asset = UnityAsset.createNew(path, new byte[] {1}, null, null);
+      assertThrows(
+          IOException.class, () -> packageManager.extractAssets(List.of(asset), output, null));
+      assertEquals("keep", Files.readString(protectedFile));
     }
   }
 }
