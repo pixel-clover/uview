@@ -131,7 +131,8 @@ public class PackageManager {
     byte[] content = Files.readAllBytes(sourceFile);
     String metaGuid = java.util.UUID.randomUUID().toString().replace("-", "");
     String metaContent = String.format("fileFormatVersion: 2\nguid: %s\n", metaGuid);
-    UnityAsset newAsset = UnityAsset.createNew(assetPath, content, metaContent.getBytes(), null);
+    UnityAsset newAsset =
+        new UnityAsset(metaGuid, assetPath, content, metaContent.getBytes(), null);
     activePackage.addAsset(newAsset);
     isModified = true;
     LOGGER.info("Staged asset {} for addition", assetPath);

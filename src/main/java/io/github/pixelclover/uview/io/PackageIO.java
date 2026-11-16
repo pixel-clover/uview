@@ -101,6 +101,9 @@ public class PackageIO {
         if (asset.metaContent() != null) {
           writeEntry(tarOut, guidDir + "asset.meta", asset.metaContent());
         }
+        if (asset.previewContent() != null) {
+          writeEntry(tarOut, guidDir + "preview.png", asset.previewContent());
+        }
       }
     }
 
