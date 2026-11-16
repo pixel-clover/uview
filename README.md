@@ -55,7 +55,7 @@ After downloading, you can start UView from your terminal or console using the f
 java -jar uview-<version>.jar
 ```
 
-Replace `<version>` with the version you downloaded (like `0.1.1`).
+Replace `<version>` with the version you downloaded (like `0.2.0`).
 
 ### Command-Line Usage
 
