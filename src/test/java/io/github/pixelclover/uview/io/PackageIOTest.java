@@ -8,7 +8,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.zip.GZIPOutputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -122,5 +124,80 @@ class PackageIOTest {
 
     UnityPackage loadedPackage = packageIO.load(testPackageFile);
     assertTrue(loadedPackage.getAssets().isEmpty());
+  }
+
+  @Test
+  void roundTripPreservesPreviewsAndReplacesExistingPackage() throws IOException {
+    UnityPackage pkg = new UnityPackage();
+    UnityAsset asset =
+        new UnityAsset(
+            "preview-guid",
+            "Assets/Textures/雪.png",
+            new byte[] {0, -1, 2},
+            new byte[] {3},
+            new byte[] {4, 5});
+    pkg.addAsset(asset);
+    Files.writeString(testPackageFile.toPath(), "old package contents");
+    packageIO.save(pkg, testPackageFile);
+    UnityAsset loaded = packageIO.load(testPackageFile).getAssetByPath(asset.assetPath());
+    assertNotNull(loaded);
+    assertEquals(asset.guid(), loaded.guid());
+    assertArrayEquals(asset.content(), loaded.content());
+    assertArrayEquals(asset.metaContent(), loaded.metaContent());
+    assertArrayEquals(asset.previewContent(), loaded.previewContent());
+  }
+
+  @Test
+  void roundTripPreservesDirectoriesEmptyFilesAndLongPaths() throws IOException {
+    UnityPackage pkg = new UnityPackage();
+    UnityAsset directory = new UnityAsset("folder-guid", "Assets/Folder", null, null, null);
+    String longPath = "Assets/Folder/" + "long-name-".repeat(20) + ".txt";
+    UnityAsset emptyFile = new UnityAsset("file-guid", longPath, new byte[0], null, null);
+    pkg.addAsset(directory);
+    pkg.addAsset(emptyFile);
+    packageIO.save(pkg, testPackageFile);
+    UnityPackage loaded = packageIO.load(testPackageFile);
+    assertEquals(2, loaded.getAssets().size());
+    assertTrue(loaded.getAssetByPath(directory.assetPath()).isDirectory());
+    assertNull(loaded.getAssetByPath(longPath).metaContent());
+    assertArrayEquals(new byte[0], loaded.getAssetByPath(longPath).content());
+    assertFalse(loaded.getAssetByPath(longPath).isDirectory());
+  }
+
+  @Test
+  void invalidAndMissingArchivesRaiseIoErrors() throws IOException {
+    assertThrows(IOException.class, () -> packageIO.load(testPackageFile));
+    Files.writeString(testPackageFile.toPath(), "not a gzip archive");
+    assertThrows(IOException.class, () -> packageIO.load(testPackageFile));
+  }
+
+  @Test
+  void loadIgnoresUnrelatedEntriesAndAssetsWithoutPathnames() throws IOException {
+    try (var gzip = new GZIPOutputStream(Files.newOutputStream(testPackageFile.toPath()));
+        var tar = new TarArchiveOutputStream(gzip)) {
+      for (var entry :
+          Map.of(
+                  "README",
+                  "ignored",
+                  "orphan/asset",
+                  "orphan content",
+                  "valid/pathname",
+                  "Assets/file.txt\n\0",
+                  "valid/asset",
+                  "content")
+              .entrySet()) {
+        byte[] data = entry.getValue().getBytes(StandardCharsets.UTF_8);
+        TarArchiveEntry header = new TarArchiveEntry(entry.getKey());
+        header.setSize(data.length);
+        tar.putArchiveEntry(header);
+        tar.write(data);
+        tar.closeArchiveEntry();
+      }
+    }
+    UnityPackage loaded = packageIO.load(testPackageFile);
+    assertEquals(1, loaded.getAssets().size());
+    assertArrayEquals(
+        "content".getBytes(StandardCharsets.UTF_8),
+        loaded.getAssetByPath("Assets/file.txt").content());
   }
 }
