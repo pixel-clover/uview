@@ -24,10 +24,9 @@ public final class App {
     // Load custom fonts on startup
     FontManager.loadAndRegisterFonts();
 
-    SwingUtilities.invokeLater(
-        () -> {
-          MainWindow frame = new MainWindow();
-          frame.setVisible(true);
-        });
+    SwingUtilities.invokeLater(() -> {
+      MainWindow frame = new MainWindow();
+      frame.setVisible(true);
+    });
   }
 }

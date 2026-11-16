@@ -18,7 +18,7 @@
       devShells = forAllSystems (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          jdk = pkgs.jdk21;
+          jdk = pkgs.jdk25;
         in
         {
           default = pkgs.mkShell {
@@ -38,7 +38,7 @@
             shellHook = pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isLinux ''
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [ pkgs.gtk3 pkgs.alsa-lib pkgs.libGL pkgs.libXtst pkgs.libXxf86vm ]}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
             '' + ''
-              echo "UView dev shell (Java 21 with Maven)"
+              echo "UView dev shell (Java 25 with Maven)"
               echo ""
               echo "Common commands:"
               echo "  make package      Build target/uview.jar"

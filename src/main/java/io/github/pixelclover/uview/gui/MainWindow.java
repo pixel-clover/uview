@@ -274,17 +274,16 @@ public class MainWindow extends JFrame {
     for (String fontFamily : fontFamilies) {
       JRadioButtonMenuItem fontItem = new JRadioButtonMenuItem(fontFamily);
       fontItem.setSelected(fontFamily.equals(currentFontFamily));
-      fontItem.addActionListener(
-          e -> {
-            updateUiFont(fontFamily, settingsManager.getFontSize(), true);
-            JOptionPane.showMessageDialog(
-                this,
-                "Font changed to "
-                    + fontFamily
-                    + ".\nSome components may require a restart to update fully.",
-                "Font Changed",
-                JOptionPane.INFORMATION_MESSAGE);
-          });
+      fontItem.addActionListener(e -> {
+        updateUiFont(fontFamily, settingsManager.getFontSize(), true);
+        JOptionPane.showMessageDialog(
+            this,
+            "Font changed to "
+                + fontFamily
+                + ".\nSome components may require a restart to update fully.",
+            "Font Changed",
+            JOptionPane.INFORMATION_MESSAGE);
+      });
       fontGroup.add(fontItem);
       fontMenu.add(fontItem);
     }
@@ -302,16 +301,15 @@ public class MainWindow extends JFrame {
     settingsMenu.addSeparator();
 
     JMenuItem resetSettingsItem = new JMenuItem("Reset UI Settings");
-    resetSettingsItem.addActionListener(
-        e -> {
-          settingsManager.resetUiSettings();
-          JOptionPane.showMessageDialog(
-              this,
-              "UI settings have been reset.\nPlease restart the application for all changes to take"
-                  + " effect.",
-              "Restart Required",
-              JOptionPane.INFORMATION_MESSAGE);
-        });
+    resetSettingsItem.addActionListener(e -> {
+      settingsManager.resetUiSettings();
+      JOptionPane.showMessageDialog(
+          this,
+          "UI settings have been reset.\nPlease restart the application for all changes to take"
+              + " effect.",
+          "Restart Required",
+          JOptionPane.INFORMATION_MESSAGE);
+    });
     settingsMenu.add(resetSettingsItem);
 
     JMenu helpMenu = new JMenu("Help");
@@ -501,18 +499,17 @@ public class MainWindow extends JFrame {
 
     setWorking(true, "Loading...");
     PackageViewPanel newPanel = new PackageViewPanel(this, file, settingsManager);
-    newPanel.loadPackage(
-        () -> {
-          int newIndex = tabbedPane.getTabCount();
-          tabbedPane.addTab(null, newPanel);
-          tabbedPane.setTabComponentAt(newIndex, new ButtonTabComponent(tabbedPane));
-          tabbedPane.setSelectedIndex(newIndex);
-          if (file != null) {
-            settingsManager.addRecentFile(file);
-          }
-          updateState();
-          setWorking(false, null);
-        });
+    newPanel.loadPackage(() -> {
+      int newIndex = tabbedPane.getTabCount();
+      tabbedPane.addTab(null, newPanel);
+      tabbedPane.setTabComponentAt(newIndex, new ButtonTabComponent(tabbedPane));
+      tabbedPane.setSelectedIndex(newIndex);
+      if (file != null) {
+        settingsManager.addRecentFile(file);
+      }
+      updateState();
+      setWorking(false, null);
+    });
   }
 
   private PackageViewPanel getCurrentPanel() {

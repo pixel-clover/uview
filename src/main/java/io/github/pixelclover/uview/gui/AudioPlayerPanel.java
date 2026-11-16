@@ -79,12 +79,11 @@ public class AudioPlayerPanel extends JPanel implements ActionListener, Runnable
 
     slider = new JSlider(0, this.audioData.length);
     slider.setValue(0);
-    slider.addChangeListener(
-        e -> {
-          if (!slider.getValueIsAdjusting()) {
-            seek(slider.getValue());
-          }
-        });
+    slider.addChangeListener(e -> {
+      if (!slider.getValueIsAdjusting()) {
+        seek(slider.getValue());
+      }
+    });
 
     JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 20));
     controlsPanel.add(playPauseButton);
@@ -174,11 +173,10 @@ public class AudioPlayerPanel extends JPanel implements ActionListener, Runnable
       line.drain();
       line.close();
       if (isPlaying) {
-        SwingUtilities.invokeLater(
-            () -> {
-              slider.setValue(0);
-              playPauseButton.setText("Play");
-            });
+        SwingUtilities.invokeLater(() -> {
+          slider.setValue(0);
+          playPauseButton.setText("Play");
+        });
         framePosition = 0;
         isPlaying = false;
       }

@@ -5,7 +5,7 @@ Guidance for coding agents working on UView.
 ## Project
 
 UView is a Java desktop application for viewing, extracting, and modifying `.unitypackage` files without Unity Editor.
-It uses Java 21, Maven, Swing with FlatLaf, and JavaFX for video playback.
+It targets Java 21, uses JDK 25 for development, and builds with Maven. The UI uses Swing with FlatLaf and JavaFX for video playback.
 
 Prioritize package and asset integrity, responsive UI behavior, and compatibility with Linux, macOS, and Windows.
 
@@ -38,10 +38,11 @@ Prioritize package and asset integrity, responsive UI behavior, and compatibilit
 
 ## Development Environment
 
-Use `nix develop` on x86_64/aarch64 Linux or Apple Silicon macOS to enter the development shell. It provides the full JDK 21, Maven using that JDK,
+Use `nix develop` on x86_64/aarch64 Linux or Apple Silicon macOS to enter the development shell. It provides the full JDK 25, Maven using that JDK,
 GNU Make, Git, pre-commit, and a Nix formatter. Java libraries, including JavaFX, remain managed by Maven.
+Keep `maven.compiler.release` at 21 and JavaFX on the 21.x line to preserve Java 21 runtime compatibility. CI tests JDKs 21 and 25.
 Nix flakes must be enabled. Commit `flake.lock` with intentional input updates so contributors use the same tool versions.
-Windows contributors can use Java 21 and Maven directly, or Nix under WSL for development.
+Windows contributors can use JDK 25 and Maven directly, or Nix under WSL for development.
 
 Commands can also run without an interactive shell: `nix develop -c make test`.
 The first build needs network access to download Maven dependencies. Running the GUI needs a graphical desktop session;
@@ -62,7 +63,7 @@ the shell supplies Linux native libraries needed by the Maven JavaFX binaries.
 | Nix Format | `nix fmt` | Formats the flake |
 | Flake Check | `nix flake check` | Validates flake outputs on the current system |
 
-Without Nix, install Java 21 and Maven, plus GNU Make for the Make targets.
+Without Nix, install JDK 25 and Maven, plus GNU Make for the Make targets.
 Do not replace the Maven build with a separate Nix build or move Java dependencies into the shell.
 
 ## Code and Testing Conventions
